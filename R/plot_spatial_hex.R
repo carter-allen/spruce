@@ -23,7 +23,7 @@ plot_spatial_hex <- function(coords,feature, n_hex_bins = 20)
   colnames(coords_df) <- c("X","Y")
   coords_df$Z <- feature
   
-  hex_plt <- ggplot(data = coords_df, aes(x = X, y = Y,z = Z)) + 
+  hex_plt <- ggplot(data = coords_df, aes(x = .data$X, y = .data$Y,z = .data$Z)) + 
     stat_summary_hex(bins = n_hex_bins) + 
     theme_void() + 
     theme(legend.position = "none") 

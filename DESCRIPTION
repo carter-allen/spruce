@@ -4,7 +4,7 @@ Title: Spatial Random Effects Clustering of Single Cell Data
 Version: 0.99.0
 Date: 2021-1-1
 Authors@R: c(person("Carter", "Allen", role = c("aut", "cre"),email = "carter.allen12@gmail.com"))
-Description: Spatial Random Effects Clustering of Single Cell Data
+Description: Spruce allows for spatial random effects clustering of single cell data.
 License: GPL (>= 2)
 Imports: ggplot2
 RoxygenNote: 7.1.1
