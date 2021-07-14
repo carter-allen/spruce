@@ -145,3 +145,39 @@ NumericVector update_z_MSN(NumericVector zs,
   }
   return z_ret;
 }
+
+// update for multivariate Normal mixture
+// with spot-level MCAR spatial random effects
+// non-cluster specific RIs
+// [[Rcpp::export]]
+NumericVector update_z_spot_MCAR(NumericVector zs, 
+                                 NumericMatrix Y,
+                                 NumericMatrix Phi,
+                                 List mun, 
+                                 List Sigma,
+                                 NumericVector pi,
+                                 NumericVector classes) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    NumericVector phii = Phi(i,_);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      NumericVector etaik = phii + munk;
+      arma::mat Sigmak = Sigma[k];
+      arma::rowvec yj = Y(i,_);
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak);
+      pj[k] = pjk[0];
+    }
+    pj = pi*pj / sum(pi*pj);
+    //Rcout << i << ":" << pi_star << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    z_ret[i] = zi[0];
+  }
+  return z_ret;
+}

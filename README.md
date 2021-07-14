@@ -1,5 +1,3 @@
-(Coming soon!)
-
 # spruce
 ## A suite of Bayesian multivariate finite mixture models for clustering single cell spatial transcriptomics data. 
 

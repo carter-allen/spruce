@@ -5,6 +5,18 @@ mvrnormArma <- function(n, mu, sigma) {
     .Call('_spruce_mvrnormArma', PACKAGE = 'spruce', n, mu, sigma)
 }
 
+sub_mat <- function(A, X) {
+    .Call('_spruce_sub_mat', PACKAGE = 'spruce', A, X)
+}
+
+col_sum <- function(X) {
+    .Call('_spruce_col_sum', PACKAGE = 'spruce', X)
+}
+
+update_phi_spot_MCAR <- function(Y, Phi, z, mun, Sigma, M, A, L) {
+    .Call('_spruce_update_phi_spot_MCAR', PACKAGE = 'spruce', Y, Phi, z, mun, Sigma, M, A, L)
+}
+
 rtn <- function(a, b, mu, sig) {
     .Call('_spruce_rtn', PACKAGE = 'spruce', a, b, mu, sig)
 }
@@ -23,5 +35,9 @@ update_z_PG <- function(zs, Y, mun, Sigma, Pi, classes) {
 
 update_z_MSN <- function(zs, Y, t, mun, xin, Sigma, pi, classes) {
     .Call('_spruce_update_z_MSN', PACKAGE = 'spruce', zs, Y, t, mun, xin, Sigma, pi, classes)
+}
+
+update_z_spot_MCAR <- function(zs, Y, Phi, mun, Sigma, pi, classes) {
+    .Call('_spruce_update_z_spot_MCAR', PACKAGE = 'spruce', zs, Y, Phi, mun, Sigma, pi, classes)
 }
 

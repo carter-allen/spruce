@@ -19,6 +19,47 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// sub_mat
+arma::mat sub_mat(arma::vec A, arma::mat X);
+RcppExport SEXP _spruce_sub_mat(SEXP ASEXP, SEXP XSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type A(ASEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    rcpp_result_gen = Rcpp::wrap(sub_mat(A, X));
+    return rcpp_result_gen;
+END_RCPP
+}
+// col_sum
+arma::vec col_sum(arma::mat X);
+RcppExport SEXP _spruce_col_sum(SEXP XSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type X(XSEXP);
+    rcpp_result_gen = Rcpp::wrap(col_sum(X));
+    return rcpp_result_gen;
+END_RCPP
+}
+// update_phi_spot_MCAR
+arma::mat update_phi_spot_MCAR(NumericMatrix Y, arma::mat Phi, NumericVector z, List mun, List Sigma, NumericMatrix M, arma::mat A, arma::mat L);
+RcppExport SEXP _spruce_update_phi_spot_MCAR(SEXP YSEXP, SEXP PhiSEXP, SEXP zSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP MSEXP, SEXP ASEXP, SEXP LSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type z(zSEXP);
+    Rcpp::traits::input_parameter< List >::type mun(munSEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type A(ASEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type L(LSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_phi_spot_MCAR(Y, Phi, z, mun, Sigma, M, A, L));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rtn
 double rtn(double a, double b, double mu, double sig);
 RcppExport SEXP _spruce_rtn(SEXP aSEXP, SEXP bSEXP, SEXP muSEXP, SEXP sigSEXP) {
@@ -103,14 +144,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_z_spot_MCAR
+NumericVector update_z_spot_MCAR(NumericVector zs, NumericMatrix Y, NumericMatrix Phi, List mun, List Sigma, NumericVector pi, NumericVector classes);
+RcppExport SEXP _spruce_update_z_spot_MCAR(SEXP zsSEXP, SEXP YSEXP, SEXP PhiSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP piSEXP, SEXP classesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< List >::type mun(munSEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pi(piSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type classes(classesSEXP);
+    rcpp_result_gen = Rcpp::wrap(update_z_spot_MCAR(zs, Y, Phi, mun, Sigma, pi, classes));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spruce_mvrnormArma", (DL_FUNC) &_spruce_mvrnormArma, 3},
+    {"_spruce_sub_mat", (DL_FUNC) &_spruce_sub_mat, 2},
+    {"_spruce_col_sum", (DL_FUNC) &_spruce_col_sum, 1},
+    {"_spruce_update_phi_spot_MCAR", (DL_FUNC) &_spruce_update_phi_spot_MCAR, 8},
     {"_spruce_rtn", (DL_FUNC) &_spruce_rtn, 4},
     {"_spruce_update_t", (DL_FUNC) &_spruce_update_t, 10},
     {"_spruce_update_z", (DL_FUNC) &_spruce_update_z, 6},
     {"_spruce_update_z_PG", (DL_FUNC) &_spruce_update_z_PG, 6},
     {"_spruce_update_z_MSN", (DL_FUNC) &_spruce_update_z_MSN, 8},
+    {"_spruce_update_z_spot_MCAR", (DL_FUNC) &_spruce_update_z_spot_MCAR, 7},
     {NULL, NULL, 0}
 };
 
