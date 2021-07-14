@@ -12,6 +12,7 @@
 #' @export
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
+#' @importFrom stats cov
 #' @examples 
 #' # parameters
 #' n <- 1000 # number of observations
@@ -72,7 +73,7 @@ fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   Ybar <- list(0)
   for(k in 1:K)
   {
-    Sigma[[k]] <- cov(Y[z == k,])
+    Sigma[[k]] <- stats::cov(Y[z == k,])
     Ybar[[k]] <- colMeans(Y[z == k,])
   }
   
@@ -87,7 +88,6 @@ fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
-  P <- matrix(0,nrow = n_save,ncol = n)
   for(k in 1:K)
   {
     MU[[k]] <- matrix(0,nrow = n_save,ncol = p)
@@ -116,8 +116,7 @@ fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
     }
     
     ### Update cluster indicators
-    PZ <- update_z(z,Y,mun,Sigma,pi,1:K)
-    z <- PZ[1,]
+    z <- update_z(z,Y,mun,Sigma,pi,1:K)
     # remap to address label switching
     z <- remap_canonical2(z)
     
@@ -131,7 +130,6 @@ fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
         SIGMA[[k]][iter,] <- c(Sigma[[k]])
       }
       Z[iter,] <- z
-      P[iter,] <- PZ[2,]
     }
     setTxtProgressBar(pb, i)
   }
@@ -146,7 +144,6 @@ fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
                    SIGMA = SIGMA,
                    K = K,
                    Z = Z,
-                   z = z_map,
-                   P = P)
+                   z = z_map)
   return(ret_list)
 }

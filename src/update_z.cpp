@@ -44,7 +44,6 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
 }
 
 // update for traditional multivariate Normal mixture
-//' @export
 // [[Rcpp::export]]
 NumericVector update_z(NumericVector zs, 
                        NumericMatrix Y,
@@ -73,15 +72,76 @@ NumericVector update_z(NumericVector zs,
     NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
     int z_i = zi[0];
     z_ret[i] = z_i;
-    PZ(0,i) = z_i;
-    
-    // Compute densities
-    NumericVector muzi = mun[z_i-1];
-    arma::mat Sigmazi = Sigma[z_i-1];
-    arma::rowvec yi = Y(i,_);
-    arma::vec pzi = dmvnrm_arma_fast(yi,muzi,Sigmazi);
-    double p_zi = pzi[0];
-    PZ(1,i) = log(p_zi);
+  }
+  return z_ret;
+}
+
+// update for multivariate Normal mixture
+// PG multinomial regression w/ no REs
+// [[Rcpp::export]]
+NumericVector update_z_PG(NumericVector zs, 
+                          NumericMatrix Y,
+                          List mun, 
+                          List Sigma,
+                          NumericMatrix Pi,
+                          NumericVector classes) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  NumericMatrix PZ(2,n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      arma::mat Sigmak = Sigma[k];
+      arma::rowvec yj = Y(i,_);
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak);
+      pj[k] = pjk[0];
+    }
+    NumericVector pii = Pi(i,_);
+    NumericVector pjn = pii*pj / sum(pii*pj);
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pjn);
+    int z_i = zi[0];
+    z_ret[i] = z_i;
+  }
+  return z_ret;
+}
+
+// update for MSN mixture
+// [[Rcpp::export]]
+NumericVector update_z_MSN(NumericVector zs, 
+                           NumericMatrix Y,
+                           NumericVector t,
+                           List mun, 
+                           List xin,
+                           List Sigma,
+                           NumericVector pi,
+                           NumericVector classes) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    arma::rowvec yj = Y(i,_);
+    double ti = t[i];
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      NumericVector xink = xin[k];
+      NumericVector etaik = munk + ti * xink;
+      arma::mat Sigmak = Sigma[k];
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak);
+      pj[k] = pjk[0];
+    }
+    pj = pi*pj / sum(pi*pj);
+    //Rcout << i << ":" << pi_star << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    z_ret[i] = zi[0];
   }
   return z_ret;
 }

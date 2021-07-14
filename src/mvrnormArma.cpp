@@ -4,7 +4,6 @@ using namespace Rcpp;
 using namespace arma;
 
 // Rcpp for sampling multivariate normal
-//' @export
 // [[Rcpp::export]]
 arma::mat mvrnormArma(int n, arma::vec mu, arma::mat sigma) {
   int ncols = sigma.n_cols;
