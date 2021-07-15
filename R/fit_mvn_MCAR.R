@@ -16,6 +16,7 @@
 #' @importFrom stats cov
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
+#' @importFrom MCMCpack rdirichlet
 #' @examples 
 #' # parameters
 #' data(coords_df_sim)
@@ -104,6 +105,7 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
   mu0 <- colMeans(Y)
   L0 <- S0 <- diag(p)
   nu0 <- 2
+  a0 <- rep(4,K) # prior parameter vector for pi1,...,piK
   
   # cluster specific sample stats
   Sigma <- list(0)
@@ -167,7 +169,10 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
     z <- update_z_spot_MCAR(z,Y,Phi,mun,Sigma,pi,1:K)
     # remap to address label switching
     z <- remap_canonical2(z)
-    # z <- z_true
+    n.z <- as.vector(unname(table(z))) # gives the number of members currently in each class
+    
+    # Update pi1,...,piK 
+    pi <- MCMCpack::rdirichlet(1,a0 + n.z)
     
     ## save results
     if(i > burn)

@@ -13,6 +13,7 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom stats cov
+#' @importFrom MCMCpack rdirichlet
 #' @examples 
 #' # parameters
 #' n <- 1000 # number of observations
@@ -77,6 +78,7 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   xi0 <- rep(0,p)
   L0 <- S0 <- P0 <- diag(p)
   nu0 <- 2
+  a0 <- rep(4,K) # prior parameter vector for pi1,...,piK
   
   # cluster specific sample stats
   Sigma <- list(0)
@@ -150,6 +152,10 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
     z <- update_z_MSN(z,Y,ts,mun,xin,Sigma,pi,1:K)
     # remap to address label switching
     z <- remap_canonical2(z)
+    n.z <- as.vector(unname(table(z))) # gives the number of members currently in each class
+    
+    # Update pi1,...,piK 
+    pi <- MCMCpack::rdirichlet(1,a0 + n.z)
     
     ## save results
     if(i > burn)

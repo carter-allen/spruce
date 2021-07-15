@@ -43,6 +43,26 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x,
   return exp(out);
 }
 
+// [[Rcpp::export]]
+int nnk(NumericVector zs,
+        NumericMatrix A,
+        int k,
+        int i)
+{
+  // get neighbors of i
+  int n = A.ncol();
+  int count = 0;
+  for(int j = 0; j < n; j++)
+  {
+    int zj = zs[j];
+    if(A(i,j) == 1 && zj == k)
+    {
+      count = count + 1;
+    }
+  }
+  return count;
+}
+
 // update for traditional multivariate Normal mixture
 // [[Rcpp::export]]
 NumericVector update_z(NumericVector zs, 
@@ -176,6 +196,41 @@ NumericVector update_z_spot_MCAR(NumericVector zs,
     }
     pj = pi*pj / sum(pi*pj);
     //Rcout << i << ":" << pi_star << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    z_ret[i] = zi[0];
+  }
+  return z_ret;
+}
+
+// update for MVN mixture
+// [[Rcpp::export]]
+NumericVector update_z_smooth(NumericVector zs, 
+                              NumericMatrix Y,
+                              List mun, 
+                              List Sigma,
+                              NumericVector pis,
+                              NumericVector classes,
+                              double gamma,
+                              NumericMatrix M,
+                              NumericMatrix A) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    arma::rowvec yj = Y(i,_);
+    int mi = M(i,i);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      arma::mat Sigmak = Sigma[k];
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak);
+      int nnk_count = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0]*exp((gamma/mi)*2*nnk_count);
+    }
+    pj = pis*pj / sum(pis*pj);
     NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
     z_ret[i] = zi[0];
   }

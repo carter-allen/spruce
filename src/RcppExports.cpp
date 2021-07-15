@@ -94,6 +94,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// nnk
+int nnk(NumericVector zs, NumericMatrix A, int k, int i);
+RcppExport SEXP _spruce_nnk(SEXP zsSEXP, SEXP ASEXP, SEXP kSEXP, SEXP iSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    rcpp_result_gen = Rcpp::wrap(nnk(zs, A, k, i));
+    return rcpp_result_gen;
+END_RCPP
+}
 // update_z
 NumericVector update_z(NumericVector zs, NumericMatrix Y, List mun, List Sigma, NumericVector pi, NumericVector classes);
 RcppExport SEXP _spruce_update_z(SEXP zsSEXP, SEXP YSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP piSEXP, SEXP classesSEXP) {
@@ -161,6 +175,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_z_smooth
+NumericVector update_z_smooth(NumericVector zs, NumericMatrix Y, List mun, List Sigma, NumericVector pis, NumericVector classes, double gamma, NumericMatrix M, NumericMatrix A);
+RcppExport SEXP _spruce_update_z_smooth(SEXP zsSEXP, SEXP YSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP pisSEXP, SEXP classesSEXP, SEXP gammaSEXP, SEXP MSEXP, SEXP ASEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< List >::type mun(munSEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pis(pisSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type classes(classesSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    rcpp_result_gen = Rcpp::wrap(update_z_smooth(zs, Y, mun, Sigma, pis, classes, gamma, M, A));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spruce_mvrnormArma", (DL_FUNC) &_spruce_mvrnormArma, 3},
@@ -169,10 +202,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spruce_update_phi_spot_MCAR", (DL_FUNC) &_spruce_update_phi_spot_MCAR, 8},
     {"_spruce_rtn", (DL_FUNC) &_spruce_rtn, 4},
     {"_spruce_update_t", (DL_FUNC) &_spruce_update_t, 10},
+    {"_spruce_nnk", (DL_FUNC) &_spruce_nnk, 4},
     {"_spruce_update_z", (DL_FUNC) &_spruce_update_z, 6},
     {"_spruce_update_z_PG", (DL_FUNC) &_spruce_update_z_PG, 6},
     {"_spruce_update_z_MSN", (DL_FUNC) &_spruce_update_z_MSN, 8},
     {"_spruce_update_z_spot_MCAR", (DL_FUNC) &_spruce_update_z_spot_MCAR, 7},
+    {"_spruce_update_z_smooth", (DL_FUNC) &_spruce_update_z_smooth, 9},
     {NULL, NULL, 0}
 };
 

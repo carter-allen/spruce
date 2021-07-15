@@ -25,6 +25,10 @@ update_t <- function(ts, k, k_inds, Ak, xnk, Sigmak, Y, munk, a, b) {
     .Call('_spruce_update_t', PACKAGE = 'spruce', ts, k, k_inds, Ak, xnk, Sigmak, Y, munk, a, b)
 }
 
+nnk <- function(zs, A, k, i) {
+    .Call('_spruce_nnk', PACKAGE = 'spruce', zs, A, k, i)
+}
+
 update_z <- function(zs, Y, mun, Sigma, pi, classes) {
     .Call('_spruce_update_z', PACKAGE = 'spruce', zs, Y, mun, Sigma, pi, classes)
 }
@@ -39,5 +43,9 @@ update_z_MSN <- function(zs, Y, t, mun, xin, Sigma, pi, classes) {
 
 update_z_spot_MCAR <- function(zs, Y, Phi, mun, Sigma, pi, classes) {
     .Call('_spruce_update_z_spot_MCAR', PACKAGE = 'spruce', zs, Y, Phi, mun, Sigma, pi, classes)
+}
+
+update_z_smooth <- function(zs, Y, mun, Sigma, pis, classes, gamma, M, A) {
+    .Call('_spruce_update_z_smooth', PACKAGE = 'spruce', zs, Y, mun, Sigma, pis, classes, gamma, M, A)
 }
 
