@@ -12,3 +12,6 @@ library(devtools)
 install_github('carter-allen/spruce')
 ```
 
+## Vignettes
+
+[Multi-Sample Mouse Brain](https://carter-allen.github.io/mouse_brain_multi.html)
