@@ -16,6 +16,7 @@
 #' @importFrom MCMCpack rdirichlet
 #' @examples 
 #' # parameters
+#' \dontrun{
 #' n <- 1000 # number of observations
 #' g <- 3 # number of features
 #' K <- 3 # number of clusters (mixture components)
@@ -46,7 +47,7 @@
 #' }
 #' 
 #' # fit model
-#' fit1 <- fit_mvn_clustering(Y,3,1000,100)
+#' fit1 <- fit_mvn_clustering(Y,3,10,0)}
 
 fit_mvn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
 {

@@ -14,9 +14,11 @@
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom stats cov
 #' @importFrom MCMCpack rdirichlet
-#' @examples 
+#' @examples
+#' \dontrun{ 
 #' # parameters
-#' n <- 1000 # number of observations
+#' n <- 1000 # 
+#' number of observations
 #' g <- 3 # number of features
 #' K <- 3 # number of clusters (mixture components)
 #' pi <- rep(1/K,K) # cluster membership probability
@@ -54,7 +56,7 @@
 #' }
 #' 
 #' # fit model
-#' fit1 <- fit_msn_clustering(Y,3,1000,100)
+#' fit1 <- fit_msn_clustering(Y,3,10,0)}
 
 fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
 {

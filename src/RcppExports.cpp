@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // mvrnormArma
 arma::mat mvrnormArma(int n, arma::vec mu, arma::mat sigma);
 RcppExport SEXP _spruce_mvrnormArma(SEXP nSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
@@ -140,6 +145,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_z_PG_smooth
+NumericVector update_z_PG_smooth(NumericVector zs, NumericMatrix Y, List mun, List Sigma, NumericMatrix Pi, NumericVector classes, double gamma, NumericMatrix M, NumericMatrix A);
+RcppExport SEXP _spruce_update_z_PG_smooth(SEXP zsSEXP, SEXP YSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP PiSEXP, SEXP classesSEXP, SEXP gammaSEXP, SEXP MSEXP, SEXP ASEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< List >::type mun(munSEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Pi(PiSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type classes(classesSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    rcpp_result_gen = Rcpp::wrap(update_z_PG_smooth(zs, Y, mun, Sigma, Pi, classes, gamma, M, A));
+    return rcpp_result_gen;
+END_RCPP
+}
 // update_z_MSN
 NumericVector update_z_MSN(NumericVector zs, NumericMatrix Y, NumericVector t, List mun, List xin, List Sigma, NumericVector pi, NumericVector classes);
 RcppExport SEXP _spruce_update_z_MSN(SEXP zsSEXP, SEXP YSEXP, SEXP tSEXP, SEXP munSEXP, SEXP xinSEXP, SEXP SigmaSEXP, SEXP piSEXP, SEXP classesSEXP) {
@@ -205,6 +229,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spruce_nnk", (DL_FUNC) &_spruce_nnk, 4},
     {"_spruce_update_z", (DL_FUNC) &_spruce_update_z, 6},
     {"_spruce_update_z_PG", (DL_FUNC) &_spruce_update_z_PG, 6},
+    {"_spruce_update_z_PG_smooth", (DL_FUNC) &_spruce_update_z_PG_smooth, 9},
     {"_spruce_update_z_MSN", (DL_FUNC) &_spruce_update_z_MSN, 8},
     {"_spruce_update_z_spot_MCAR", (DL_FUNC) &_spruce_update_z_spot_MCAR, 7},
     {"_spruce_update_z_smooth", (DL_FUNC) &_spruce_update_z_smooth, 9},

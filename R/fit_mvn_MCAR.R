@@ -18,6 +18,7 @@
 #' @importFrom igraph as_adjacency_matrix
 #' @importFrom MCMCpack rdirichlet
 #' @examples 
+#' \dontrun{
 #' # parameters
 #' data(coords_df_sim)
 #' coords_df <- coords_df_sim[,1:2]
@@ -74,7 +75,7 @@
 #' 
 #' # fit model
 #' # in practice use more mcmc iterations
-#' fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 100, burn = 0)
+#' fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)}
 
 fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
 {

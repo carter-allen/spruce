@@ -9,7 +9,7 @@
 #' @importFrom mvtnorm rmvnorm
 #' @examples 
 #' # parameters
-#' n <- 1000 # number of observations
+#' n <- 100 # number of observations
 #' g <- 3 # number of features
 #' K <- 3 # number of clusters (mixture components)
 #' pi <- rep(1/K,K) # cluster membership probability
@@ -39,7 +39,7 @@
 #' }
 #' 
 #' # fit model
-#' fit1 <- fit_mvn_clustering(Y,3,1000,100)
+#' fit1 <- fit_mvn_clustering(Y,3,100,0)
 #'
 #' # Apply get_map() to columns of Z (i.e., posterior samples from each cell spot)
 #' z_map <- apply(fit1$Z, 2, get_map)

@@ -37,6 +37,10 @@ update_z_PG <- function(zs, Y, mun, Sigma, Pi, classes) {
     .Call('_spruce_update_z_PG', PACKAGE = 'spruce', zs, Y, mun, Sigma, Pi, classes)
 }
 
+update_z_PG_smooth <- function(zs, Y, mun, Sigma, Pi, classes, gamma, M, A) {
+    .Call('_spruce_update_z_PG_smooth', PACKAGE = 'spruce', zs, Y, mun, Sigma, Pi, classes, gamma, M, A)
+}
+
 update_z_MSN <- function(zs, Y, t, mun, xin, Sigma, pi, classes) {
     .Call('_spruce_update_z_MSN', PACKAGE = 'spruce', zs, Y, t, mun, xin, Sigma, pi, classes)
 }

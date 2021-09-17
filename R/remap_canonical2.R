@@ -8,7 +8,7 @@
 #' @export
 #' @examples 
 #' # parameters
-#' n <- 1000 # number of observations
+#' n <- 10 # number of observations
 #' K <- 3 # number of clusters (mixture components)
 #' pi <- rep(1/K,K) # cluster membership probability
 #' z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators

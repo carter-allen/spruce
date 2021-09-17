@@ -63,5 +63,5 @@ for(i in 1:n)
 }
 
 # fit model
-fit1 <- fit_msn_clustering(Y,3,1000,100)
+fit1 <- fit_msn_clustering(Y,3,10,0)
 }

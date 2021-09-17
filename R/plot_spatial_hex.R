@@ -10,7 +10,7 @@
 #' @export
 #' @import ggplot2
 #' @examples 
-#' n <- 10000
+#' n <- 100
 #' x <- runif(n)
 #' y <- runif(n)
 #' z <- rnorm(n)

@@ -19,7 +19,7 @@
 #' @importFrom igraph as_adjacency_matrix
 #' @importFrom MCMCpack rdirichlet
 #' @examples 
-#' # parameters
+#' \dontrun{
 #' # parameters
 #' data(coords_df_sim)
 #' coords_df <- coords_df_sim[,1:2]
@@ -66,7 +66,7 @@
 #' 
 #' # fit model
 #' # use more iterations in practice
-#' fit1 <- fit_mvn_smooth(Y,coords_df,4,2,10,0,z_km)
+#' fit1 <- fit_mvn_smooth(Y,coords_df,4,2,10,0,z_km)}
 
 fit_mvn_smooth <- function(Y,coords_df,K,r,nsim = 2000,burn = 1000,z_init = NULL)
 {

@@ -16,6 +16,7 @@
 #' @importFrom BayesLogit rpg
 #' @importFrom stats cov
 #' @examples 
+#' \dontrun{
 #' # parameters
 #' n <- 1000 # number of observations
 #' g <- 3 # number of features
@@ -68,7 +69,7 @@
 #' }
 #' 
 #' # fit model
-#' fit1 <- fit_mvn_clustering_PG(Y,W,3,1000,100)
+#' fit1 <- fit_mvn_clustering_PG(Y,W,3,10,0)}
 
 fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
 {

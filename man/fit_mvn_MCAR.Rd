@@ -81,5 +81,5 @@ for(i in 1:n)
 
 # fit model
 # in practice use more mcmc iterations
-fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 100, burn = 0)
+fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)
 }

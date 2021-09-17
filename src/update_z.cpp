@@ -84,12 +84,22 @@ NumericVector update_z(NumericVector zs,
       NumericVector munk = mun[k];
       arma::mat Sigmak = Sigma[k];
       arma::rowvec yj = Y(i,_);
-      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak);
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak,true);
       pj[k] = pjk[0];
     }
-    pj = pi*pj / sum(pi*pj);
-    //Rcout << i << ":" << pi_star << std::endl;
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    Rcout << i << ":" << pj << std::endl;
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj2 = pi*pj / sum(pi*pj);
+    }
+    Rcout << i << ":" << pj2 << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     int z_i = zi[0];
     z_ret[i] = z_i;
   }
@@ -124,6 +134,56 @@ NumericVector update_z_PG(NumericVector zs,
     NumericVector pii = Pi(i,_);
     NumericVector pjn = pii*pj / sum(pii*pj);
     NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pjn);
+    int z_i = zi[0];
+    z_ret[i] = z_i;
+  }
+  return z_ret;
+}
+
+// update for multivariate Normal mixture
+// PG multinomial regression w/ spatial smoothing
+// [[Rcpp::export]]
+NumericVector update_z_PG_smooth(NumericVector zs, 
+                                 NumericMatrix Y,
+                                 List mun, 
+                                 List Sigma,
+                                 NumericMatrix Pi,
+                                 NumericVector classes,
+                                 double gamma,
+                                 NumericMatrix M,
+                                 NumericMatrix A) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    arma::rowvec yj = Y(i,_);
+    int mi = M(i,i);
+    NumericVector nnk_count(K);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      arma::mat Sigmak = Sigma[k];
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak,true);
+      nnk_count[k] = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0];
+    }
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj = pj*exp((gamma/mi)*2*nnk_count);
+      NumericVector pii = Pi(i,_);
+      pj2 = pii*pj / sum(pii*pj);
+    }
+    //Rcout << i << ":" << pj2 << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     int z_i = zi[0];
     z_ret[i] = z_i;
   }
