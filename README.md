@@ -1,3 +1,5 @@
+Note: this package is still under development. A full featured package will be released in the near future.
+
 # spruce
 ## A suite of Bayesian multivariate finite mixture models for clustering single cell spatial transcriptomics data. 
 
