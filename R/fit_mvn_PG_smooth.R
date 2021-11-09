@@ -11,6 +11,7 @@
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
 #' @param z_init Optional initialized allocation vector. Initialized with hierarchical clustering if NULL. 
+#' @param verbose Logical for printing cluster allocations at each iteration.
 #'
 #' @return a list of posterior samples
 #' @export
@@ -20,7 +21,7 @@
 #' @importFrom stats cov cutree
 #' @importFrom Rclusterpp Rclusterpp.hclust
 
-fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL, verbose = FALSE)
 {
   # parameters
   n <- nrow(Y) # number of observations
