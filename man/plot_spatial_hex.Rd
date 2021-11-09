@@ -20,7 +20,7 @@ a ggplot
 Allows for visualization of gene expression patterns across discrete bins
 }
 \examples{
-n <- 10000
+n <- 100
 x <- runif(n)
 y <- runif(n)
 z <- rnorm(n)

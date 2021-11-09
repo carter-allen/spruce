@@ -103,9 +103,6 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
       Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
     }
     
-    ### Update cluster indicators
-    z <- update_z_PG_smooth(z,Y,mun,Sigma,PI,1:K,r,M,A)
-    
     # Update multinomial regression parameters
     W <- as.matrix(W) # enforce W is a matrix
     for(k in 1:(K-1))
@@ -126,7 +123,19 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
     # delta <- Delta
     eta <- cbind(rep(0,n),W%*%delta)
     PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
-    pi <- table(z)/n
+    pi <- update_props(z,K)
+    
+    ### Update cluster indicators
+    z = update_z_PG_smooth(z,Y,mun,Sigma,PI,1:K,r,M,A)
+    if(verbose)
+    {
+      print(update_counts(z,K))
+    }
+    if(any(update_counts(z,K) < 20))
+    {
+      z = z_init
+      pi = update_props(z,K)
+    }
     
     ## save results
     if(i > burn)

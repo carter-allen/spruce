@@ -26,6 +26,7 @@ a list of posterior samples
 Implement Gibbs sampling for MVN model with MCAR spatial random effects
 }
 \examples{
+\dontrun{
 # parameters
 data(coords_df_sim)
 coords_df <- coords_df_sim[,1:2]
@@ -81,5 +82,5 @@ for(i in 1:n)
 
 # fit model
 # in practice use more mcmc iterations
-fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)
+fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)}
 }

@@ -9,6 +9,7 @@
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
 #' @param z_init Optional initialized allocation vector. Randomly initialized if NULL. 
+#' @param verbose Logical for printing cluster allocations at each iteration.
 #'
 #' @return a list of posterior samples
 #' @export
@@ -68,7 +69,7 @@
 #' # use more iterations in practice
 #' fit1 <- fit_mvn_smooth(Y,coords_df,4,2,10,0,z_km)}
 
-fit_mvn_smooth <- function(Y,coords_df,K,r,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_smooth <- function(Y,coords_df,K,r,nsim = 2000,burn = 1000,z_init = NULL,verbose = FALSE)
 {
   # parameters
   n <- nrow(Y) # number of observations
@@ -76,8 +77,9 @@ fit_mvn_smooth <- function(Y,coords_df,K,r,nsim = 2000,burn = 1000,z_init = NULL
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init))
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    z_init <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
+    z_init <- remap_canonical2(z_init)
+    z <- z_init
   }
   else
   {
@@ -146,7 +148,16 @@ fit_mvn_smooth <- function(Y,coords_df,K,r,nsim = 2000,burn = 1000,z_init = NULL
     z <- update_z_smooth(z,Y,mun,Sigma,pi,1:K,r,M,A)
     # remap to address label switching
     z <- remap_canonical2(z)
-    pi <- as.vector(unname(table(z)))/n
+    pi <- update_props(z,K)
+    if(verbose)
+    {
+      print(update_counts(z,K))
+    }
+    if(any(update_counts(z,K) < 20))
+    {
+      z = sample(1:K, size = n, replace = TRUE, prob = rep(1/K,K))
+      pi <- update_props(z,K)
+    }
     
     ## save results
     if(i > burn)

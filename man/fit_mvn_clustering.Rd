@@ -25,6 +25,7 @@ Implement Gibbs sampling for MVN model with no spatial random effects
 }
 \examples{
 # parameters
+\dontrun{
 n <- 1000 # number of observations
 g <- 3 # number of features
 K <- 3 # number of clusters (mixture components)
@@ -55,5 +56,5 @@ for(i in 1:n)
 }
 
 # fit model
-fit1 <- fit_mvn_clustering(Y,3,10,0)
+fit1 <- fit_mvn_clustering(Y,3,10,0)}
 }

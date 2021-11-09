@@ -4,7 +4,16 @@
 \alias{fit_mvn_smooth}
 \title{Spatial multivariate normal mixture model clustering}
 \usage{
-fit_mvn_smooth(Y, coords_df, K, r, nsim = 2000, burn = 1000, z_init = NULL)
+fit_mvn_smooth(
+  Y,
+  coords_df,
+  K,
+  r,
+  nsim = 2000,
+  burn = 1000,
+  z_init = NULL,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{Y}{An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.}
@@ -20,6 +29,8 @@ fit_mvn_smooth(Y, coords_df, K, r, nsim = 2000, burn = 1000, z_init = NULL)
 \item{burn}{Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.}
 
 \item{z_init}{Optional initialized allocation vector. Randomly initialized if NULL.}
+
+\item{verbose}{Logical for printing cluster allocations at each iteration.}
 }
 \value{
 a list of posterior samples
@@ -28,7 +39,7 @@ a list of posterior samples
 Implement Gibbs sampling for MVN model with spatial smoothing
 }
 \examples{
-# parameters
+\dontrun{
 # parameters
 data(coords_df_sim)
 coords_df <- coords_df_sim[,1:2]
@@ -75,5 +86,5 @@ z_km <- remap_canonical2(fitk$cluster)
 
 # fit model
 # use more iterations in practice
-fit1 <- fit_mvn_smooth(Y,coords_df,4,2,10,0,z_km)
+fit1 <- fit_mvn_smooth(Y,coords_df,4,2,10,0,z_km)}
 }

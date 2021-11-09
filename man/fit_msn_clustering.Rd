@@ -24,8 +24,10 @@ a list of posterior samples
 Implement Gibbs sampling for MSN model with no spatial random effects
 }
 \examples{
+\dontrun{ 
 # parameters
-n <- 1000 # number of observations
+n <- 1000 # 
+number of observations
 g <- 3 # number of features
 K <- 3 # number of clusters (mixture components)
 pi <- rep(1/K,K) # cluster membership probability
@@ -63,5 +65,5 @@ for(i in 1:n)
 }
 
 # fit model
-fit1 <- fit_msn_clustering(Y,3,10,0)
+fit1 <- fit_msn_clustering(Y,3,10,0)}
 }

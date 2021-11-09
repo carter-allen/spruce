@@ -29,6 +29,14 @@ nnk <- function(zs, A, k, i) {
     .Call('_spruce_nnk', PACKAGE = 'spruce', zs, A, k, i)
 }
 
+update_counts <- function(zs, K0) {
+    .Call('_spruce_update_counts', PACKAGE = 'spruce', zs, K0)
+}
+
+update_props <- function(zs, K0) {
+    .Call('_spruce_update_props', PACKAGE = 'spruce', zs, K0)
+}
+
 update_z <- function(zs, Y, mun, Sigma, pi, classes) {
     .Call('_spruce_update_z', PACKAGE = 'spruce', zs, Y, mun, Sigma, pi, classes)
 }

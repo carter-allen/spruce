@@ -26,6 +26,7 @@ a list of posterior samples
 Implement Gibbs sampling for MVN model with no spatial random effects. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
 }
 \examples{
+\dontrun{
 # parameters
 n <- 1000 # number of observations
 g <- 3 # number of features
@@ -78,5 +79,5 @@ for(i in 1:n)
 }
 
 # fit model
-fit1 <- fit_mvn_clustering_PG(Y,W,3,10,0)
+fit1 <- fit_mvn_clustering_PG(Y,W,3,10,0)}
 }

@@ -113,6 +113,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_counts
+NumericVector update_counts(NumericVector zs, int K0);
+RcppExport SEXP _spruce_update_counts(SEXP zsSEXP, SEXP K0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< int >::type K0(K0SEXP);
+    rcpp_result_gen = Rcpp::wrap(update_counts(zs, K0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// update_props
+NumericVector update_props(NumericVector zs, int K0);
+RcppExport SEXP _spruce_update_props(SEXP zsSEXP, SEXP K0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< int >::type K0(K0SEXP);
+    rcpp_result_gen = Rcpp::wrap(update_props(zs, K0));
+    return rcpp_result_gen;
+END_RCPP
+}
 // update_z
 NumericVector update_z(NumericVector zs, NumericMatrix Y, List mun, List Sigma, NumericVector pi, NumericVector classes);
 RcppExport SEXP _spruce_update_z(SEXP zsSEXP, SEXP YSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP piSEXP, SEXP classesSEXP) {
@@ -227,6 +251,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spruce_rtn", (DL_FUNC) &_spruce_rtn, 4},
     {"_spruce_update_t", (DL_FUNC) &_spruce_update_t, 10},
     {"_spruce_nnk", (DL_FUNC) &_spruce_nnk, 4},
+    {"_spruce_update_counts", (DL_FUNC) &_spruce_update_counts, 2},
+    {"_spruce_update_props", (DL_FUNC) &_spruce_update_props, 2},
     {"_spruce_update_z", (DL_FUNC) &_spruce_update_z, 6},
     {"_spruce_update_z_PG", (DL_FUNC) &_spruce_update_z_PG, 6},
     {"_spruce_update_z_PG_smooth", (DL_FUNC) &_spruce_update_z_PG_smooth, 9},
