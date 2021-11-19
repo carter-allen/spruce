@@ -122,7 +122,7 @@ NumericVector update_z(NumericVector zs,
       arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak,true);
       pj[k] = pjk[0];
     }
-    Rcout << i << ":" << pj << std::endl;
+    //Rcout << i << ":" << pj << std::endl;
     NumericVector pj2 (pj.length());
     if(any(exp(pj) == 0).is_true())
     {
@@ -133,7 +133,7 @@ NumericVector update_z(NumericVector zs,
       pj = exp(pj);
       pj2 = pi*pj / sum(pi*pj);
     }
-    Rcout << i << ":" << pj2 << std::endl;
+    //Rcout << i << ":" << pj2 << std::endl;
     NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     int z_i = zi[0];
     z_ret[i] = z_i;
