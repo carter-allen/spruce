@@ -1,8 +1,9 @@
-#' Multivariate normal spatial mixture model clustering
+#' Multivariate normal spatial mixture model clustering w/ PG multinomial regression on membership probabilities
 #'
-#' Implement Gibbs sampling for MVN model with MCAR spatial random effects
+#' Implement Gibbs sampling for MVN model with MCAR spatial random effects w/ PG multinomial regression on membership probabilities
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
+#' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
 #' @param coords_df An n x 2 data frame or matrix of 2d spot coordinates.  
 #' @param K The number of mixture components to fit. 
 #' @param nsim Number of total MCMC iterations to run.
@@ -16,72 +17,20 @@
 #' @importFrom stats cov
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
-#' @importFrom MCMCpack rdirichlet
-#' @examples 
-#' \dontrun{
-#' # parameters
-#' data(coords_df_sim)
-#' coords_df <- coords_df_sim[,1:2]
-#' z <- remap_canonical2(coords_df_sim$z)
-#' W_nn <- scran::buildKNNGraph(as.matrix(coords_df),
-#'                              k = 4,
-#'                              transposed = TRUE)
-#' A <- igraph::as_adjacency_matrix(W_nn,
-#'                                  type = "both",
-#'                                  sparse = FALSE)
-#'                                  
-#' n <- nrow(coords_df) # number of observations
-#' g <- 2 # number of features
-#' K <- length(unique(coords_df_sim$z)) # number of clusters (mixture components)
-#' pi <- table(z)/length(z) # cluster membership probability
-#' 
-#' # Cluster Specific Parameters
-# cluster specific means
-#' Mu <- list(
-#'   Mu1 = rnorm(g,-5,1),
-#'   Mu2 = rnorm(g,0,1),
-#'   Mu3 = rnorm(g,5,1),
-#'   Mu4 = rnorm(g,-2,3)
-#' )
-#' # cluster specific variance-covariance
-#' S <- matrix(1,nrow = g,ncol = g) # y covariance matrix
-#' diag(S) <- 1.5
-#' Sig <- list(
-#'   Sig1 = S,
-#'   Sig2 = S, 
-#'   Sig3 = S,
-#'   Sig4 = S
-#' )
-#' 
-#' # generate phi - not cluster specific
-#' # conditional covariance of phi_i given phi_noti
-#' m <- colSums(A)
-#' M <- diag(m)
-#' V <- matrix(0.4,nrow = g, ncol = g) # CAR covariance
-#' diag(V) <- 0.6
-#' V_true <- V
-#' rho <- 0.999999 # Spatial dependence parameter ~ 1 for intrinsic CAR
-#' Q <- diag(m) - rho*A	# m is number of neighbors for each spot
-#' covphi <- solve(Q) %x% V # gn x gn covariance of phis
-#' phi <- mvtnorm::rmvnorm(1, sigma=covphi)		# gn vector of spatial effects
-#' PHI <- matrix(phi, ncol=g, byrow=TRUE) 	# n x g matrix of spatial effects
-#' PHI <- t(scale(t(PHI)))
-#' 
-#' Y <- matrix(0, nrow = n, ncol = g)
-#' for(i in 1:n)
-#' {
-#'   Y[i,] <- mvtnorm::rmvnorm(1,mean = Mu[[z[i]]] + PHI[i,],sigma = Sig[[z[i]]])
-#' }
-#' 
-#' # fit model
-#' # in practice use more mcmc iterations
-#' fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)}
 
-fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_PG_MCAR <- function(Y,
+                            W,
+                            coords_df,
+                            K,
+                            nsim = 2000,
+                            burn = 1000,
+                            z_init = NULL, 
+                            verbose = FALSE)
 {
   # parameters
   n <- nrow(coords_df) # number of observations
   p <- ncol(Y) # number of features
+  v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init))
   {
@@ -107,7 +56,8 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
   mu0 <- colMeans(Y)
   L0 <- S0 <- V <- diag(p)
   nu0 <- 2
-  a0 <- rep(4,K) # prior parameter vector for pi1,...,piK
+  delta0 <- rep(0,v) # prior mean for delta coefficients (multinomial regression)
+  D0 <- diag(1,v) # prior covariance for delta coefficients (multinomial regression)
   
   # cluster specific sample stats
   Sigma <- list(0)
@@ -130,6 +80,11 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
   Phi <- PHI
+  
+  DELTA <- matrix(0,nrow = n_save,ncol = v*(K-1))
+  delta <- matrix(0,nrow = v,ncol = K-1)
+  eta <- cbind(rep(0,n),W%*%delta)
+  PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
   
   for(k in 1:K)
   {
@@ -168,13 +123,31 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
     Dstar <- S0 + t(Phi) %*% (M - A) %*% Phi 
     V <- solve(r2arma::rwishart(vn,solve(Dstar)))
     
-    z <- update_z_spot_MCAR(z,Y,Phi,mun,Sigma,pi,1:K)
+    z <- update_z_spot_PG_MCAR(z,Y,Phi,mun,Sigma,PI,1:K)
     # remap to address label switching
     z <- remap_canonical2(z)
-    n.z <- as.vector(unname(table(z))) # gives the number of members currently in each class
     
-    # Update pi1,...,piK 
-    pi <- MCMCpack::rdirichlet(1,a0 + n.z)
+    # Update multinomial regression parameters
+    W <- as.matrix(W) # enforce W is a matrix
+    for(k in 1:(K-1))
+    {
+      deltak <- delta[,k]
+      deltanotk <- delta[,-k]
+      uk <- 1*(z == (k+1))
+      ck <- log(1 + rowSums(exp(W %*% deltanotk)))
+      eta <- W %*% deltak - ck
+      w <- rpg(n, 1, eta)
+      ukstr <- (uk - 1/2)/w + ck
+      
+      D <- solve(D0 + crossprod(W*sqrt(w)))  
+      d <- D %*% (D0 %*% delta0 + t(w*W) %*% ukstr)
+      deltak <- c(rmvnorm(1,d,D))
+      delta[,k] <- deltak
+    }
+    # delta <- Delta
+    eta <- cbind(rep(0,n),W%*%delta)
+    PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
+    pi <- table(z)/n
     
     ## save results
     if(i > burn)
@@ -186,6 +159,7 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
         SIGMA[[k]][iter,] <- c(Sigma[[k]])
       }
       Z[iter,] <- z
+      DELTA[iter,] <- c(delta)
     }
     setTxtProgressBar(pb, i)
   }
@@ -196,10 +170,14 @@ fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
   z_map <- apply(Z, 2, get_map)
   
   ret_list <- list(Y = Y,
+                   W = W,
+                   coords_df = coords_df,
                    MU = MU,
                    SIGMA = SIGMA,
+                   DELTA = DELTA,
                    K = K,
                    Z = Z,
-                   z = z_map)
+                   z = z_map,
+                   z_init = z_init)
   return(ret_list)
 }

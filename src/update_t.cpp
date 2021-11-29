@@ -35,6 +35,7 @@ NumericVector update_t(NumericVector ts,
   for(int i = 0; i < nk; i++)
   {
     int ik = k_inds[i];
+    //Rcout << ik << std::endl;
     arma::vec yik = Y(ik - 1,_);
     double aik = Ak * (xnk.t() * inv(Sigmak) * (yik - munk)).eval()(0,0);
     double tik = rtn(a,b,aik,sqrt(Ak));

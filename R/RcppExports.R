@@ -57,6 +57,10 @@ update_z_spot_MCAR <- function(zs, Y, Phi, mun, Sigma, pi, classes) {
     .Call('_spruce_update_z_spot_MCAR', PACKAGE = 'spruce', zs, Y, Phi, mun, Sigma, pi, classes)
 }
 
+update_z_spot_PG_MCAR <- function(zs, Y, Phi, mun, Sigma, Pi, classes) {
+    .Call('_spruce_update_z_spot_PG_MCAR', PACKAGE = 'spruce', zs, Y, Phi, mun, Sigma, Pi, classes)
+}
+
 update_z_smooth <- function(zs, Y, mun, Sigma, pis, classes, gamma, M, A) {
     .Call('_spruce_update_z_smooth', PACKAGE = 'spruce', zs, Y, mun, Sigma, pis, classes, gamma, M, A)
 }
