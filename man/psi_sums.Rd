@@ -4,12 +4,12 @@
 \alias{psi_sums}
 \title{Sum neighboring psis in spot i}
 \usage{
-psi_sums(Psi, ai)
+psi_sums(ai, Psi)
 }
 \arguments{
-\item{Psi}{an n x 1 vector of component k psis}
-
 \item{ai}{the ith row (or column) of the adjacency matrix}
+
+\item{Psi}{an n x 1 vector of component k psis}
 }
 \description{
 Sum neighboring psis in spot i

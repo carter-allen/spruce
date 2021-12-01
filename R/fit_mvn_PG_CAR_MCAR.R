@@ -1,6 +1,6 @@
-#' Multivariate normal mixture model clustering - PG multinom regression w/ CAR random effect
+#' Multivariate normal spatial mixture model clustering w/ PG multinomial regression on membership probabilities
 #'
-#' Implement Gibbs sampling for MVN model. Includes fixed effects multinomial regression w/ CAR random intercepts on cluster indicators using Polya-Gamma data augmentation.
+#' Implement Gibbs sampling for MVN model with MCAR spatial random effects w/ PG multinomial regression on membership probabilities and CAR random ints in multinomial regression model.
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
 #' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
@@ -18,10 +18,17 @@
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
 
-fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_PG_CAR_MCAR <- function(Y,
+                                W,
+                                coords_df,
+                                K,
+                                nsim = 2000,
+                                burn = 1000,
+                                z_init = NULL, 
+                                verbose = FALSE)
 {
   # parameters
-  n <- nrow(Y) # number of observations
+  n <- nrow(coords_df) # number of observations
   p <- ncol(Y) # number of features
   v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
@@ -44,11 +51,12 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
   Q <- M - A
   
   # random effects
+  PHI <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
   PSI <- matrix(0, nrow = nrow(Y), ncol = K-1)
   
   # priors - shared across clusters
   mu0 <- colMeans(Y)
-  L0 <- S0 <- diag(p)
+  L0 <- S0 <- V <- diag(p)
   nu0 <- 2
   delta0 <- rep(0,v) # prior mean for delta coefficients (multinomial regression)
   D0 <- diag(1,v) # prior covariance for delta coefficients (multinomial regression)
@@ -74,10 +82,13 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
+  Phi <- PHI
+  
   DELTA <- matrix(0,nrow = n_save,ncol = v*(K-1))
   delta <- matrix(0,nrow = v,ncol = K-1)
-  eta <- cbind(rep(0,n),W%*%delta + PSI)
+  eta <- cbind(rep(0,n),W%*%delta)
   PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
+  
   for(k in 1:K)
   {
     MU[[k]] <- matrix(0,nrow = n_save,ncol = p)
@@ -86,6 +97,7 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
   start.time <- proc.time()
   print(paste("Started MCMC of",nsim))
   pb <- txtProgressBar(min = 0, max = nsim, style = 3)
+  
   for(i in 1:nsim) 
   {
     ### Update cluster - specific parameters
@@ -93,7 +105,7 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
     {
       ### update cluster specific sample stats
       nk <- sum(z == k)
-      Ybar[[k]] <- colMeans(Y[z == k,])
+      Ybar[[k]] <- colMeans(Y[z == k,] - Phi[z == k,])
       
       ### update mu - cluster specific
       Ln[[k]] <- solve(solve(L0) + nk*solve(Sigma[[k]]))
@@ -101,12 +113,20 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
       mun[[k]] <- mvrnormArma(1 ,mn[[k]],Ln[[k]])
       
       ### update Sigma - cluster specific 
-      Sn[[k]] <- S0 + (t(Y[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - c(mun[[k]])) 
+      Sn[[k]] <- S0 + (t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) 
       Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
     }
     
-    ### Update cluster indicators
-    z <- update_z_PG(z,Y,mun,Sigma,PI,1:K)
+    ### Update random effects Phi
+    Phi <- update_phi_spot_MCAR(Y,Phi,z,mun,Sigma,M,A,V)
+    Phi <- t(scale(t(Phi)))
+    
+    ### Update random effects variance
+    vn <- nu0 + n
+    Dstar <- S0 + t(Phi) %*% (M - A) %*% Phi 
+    V <- solve(r2arma::rwishart(vn,solve(Dstar)))
+    
+    z <- update_z_spot_PG_MCAR(z,Y,Phi,mun,Sigma,PI,1:K)
     # remap to address label switching
     z <- remap_canonical2(z)
     
@@ -133,7 +153,7 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
       Vk <- 1/(m^2/Nu2[k] + 1/w^2)
       PSI[,k] <- rnorm(n = n, mean = Mk, sd = sqrt(Vk))
       
-      Nu2[k] <- rgamma(1,.01 + (n-1)/2,.01 + (t(PSI[,k]) %*% Q %*% PSI[,k])/2)
+      Nu2[k] <- 1/rgamma(1,.01 + (n-1)/2,.01 + (t(PSI[,k]) %*% Q %*% PSI[,k])/2)
     }
     # delta <- Delta
     eta <- cbind(rep(0,n),W%*%delta + PSI)
@@ -164,10 +184,11 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
                    W = W,
                    coords_df = coords_df,
                    MU = MU,
-                   DELTA = DELTA,
                    SIGMA = SIGMA,
+                   DELTA = DELTA,
                    K = K,
                    Z = Z,
-                   z = z_map)
+                   z = z_map,
+                   z_init = z_init)
   return(ret_list)
 }
