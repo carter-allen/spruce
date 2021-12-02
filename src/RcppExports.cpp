@@ -282,6 +282,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// update_z_spot_PG_MCAR_smooth
+NumericVector update_z_spot_PG_MCAR_smooth(NumericVector zs, NumericMatrix Y, NumericMatrix Phi, List mun, List Sigma, NumericMatrix Pi, NumericVector classes, double gamma, NumericMatrix M, NumericMatrix A);
+RcppExport SEXP _spruce_update_z_spot_PG_MCAR_smooth(SEXP zsSEXP, SEXP YSEXP, SEXP PhiSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP PiSEXP, SEXP classesSEXP, SEXP gammaSEXP, SEXP MSEXP, SEXP ASEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type zs(zsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Phi(PhiSEXP);
+    Rcpp::traits::input_parameter< List >::type mun(munSEXP);
+    Rcpp::traits::input_parameter< List >::type Sigma(SigmaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type Pi(PiSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type classes(classesSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type M(MSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    rcpp_result_gen = Rcpp::wrap(update_z_spot_PG_MCAR_smooth(zs, Y, Phi, mun, Sigma, Pi, classes, gamma, M, A));
+    return rcpp_result_gen;
+END_RCPP
+}
 // update_z_smooth
 NumericVector update_z_smooth(NumericVector zs, NumericMatrix Y, List mun, List Sigma, NumericVector pis, NumericVector classes, double gamma, NumericMatrix M, NumericMatrix A);
 RcppExport SEXP _spruce_update_z_smooth(SEXP zsSEXP, SEXP YSEXP, SEXP munSEXP, SEXP SigmaSEXP, SEXP pisSEXP, SEXP classesSEXP, SEXP gammaSEXP, SEXP MSEXP, SEXP ASEXP) {
@@ -320,6 +340,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_spruce_update_z_MSN_smooth", (DL_FUNC) &_spruce_update_z_MSN_smooth, 11},
     {"_spruce_update_z_spot_MCAR", (DL_FUNC) &_spruce_update_z_spot_MCAR, 7},
     {"_spruce_update_z_spot_PG_MCAR", (DL_FUNC) &_spruce_update_z_spot_PG_MCAR, 7},
+    {"_spruce_update_z_spot_PG_MCAR_smooth", (DL_FUNC) &_spruce_update_z_spot_PG_MCAR_smooth, 10},
     {"_spruce_update_z_smooth", (DL_FUNC) &_spruce_update_z_smooth, 9},
     {NULL, NULL, 0}
 };
