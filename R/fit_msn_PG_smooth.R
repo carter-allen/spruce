@@ -1,7 +1,7 @@
-#' Multivariate normal mixture model clustering - PG multinom regression
+#' Multivariate skew normal mixture model clustering - PG multinom regression
 #' Spatial smoothing
 #'
-#' Implement Gibbs sampling for MVN model with spatial smoothing prior. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
+#' Implement Gibbs sampling for MSN model with spatial smoothing prior. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
 #' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
@@ -19,8 +19,10 @@
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom BayesLogit rpg
 #' @importFrom stats cov cutree
+#' @importFrom Rclusterpp Rclusterpp.hclust
+#' @importFrom truncnorm rtruncnorm
 
-fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL, verbose = FALSE)
+fit_msn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL, verbose = FALSE)
 {
   # parameters
   n <- nrow(Y) # number of observations
@@ -29,14 +31,16 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
+    z <- z_init
   }
   else # user provided initialization
   {
     z <- z_init
     pi <- table(z)/n
   }
+  ts <- truncnorm::rtruncnorm(n,0,Inf,0,1)
   
   # set up spatial data
   # adjacency matrix
@@ -47,7 +51,8 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   
   # priors - shared across clusters
   mu0 <- colMeans(Y)
-  L0 <- S0 <- diag(p)
+  xi0 <- rep(0,p)
+  L0 <- S0 <- P0 <- diag(p)
   nu0 <- 2
   delta0 <- rep(0,v) # prior mean for delta coefficients (multinomial regression)
   D0 <- diag(1,v) # prior covariance for delta coefficients (multinomial regression)
@@ -62,13 +67,14 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   }
   
   # Intermediate MCMC vars
-  Ln <- list(0)
-  mn <- list(0)
+  Ln <- Pn <- list(0)
+  mn <- xn <- list(0)
   mun <- list(0)
+  xin <- list(0)
   Sn <- list(0)
   
   # Empty sample storage
-  MU <- SIGMA <- vector("list",K)
+  MU <- XI <- SIGMA <- vector("list",K)
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
@@ -78,7 +84,10 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
   for(k in 1:K)
   {
+    mun[[k]] <- rep(0,p)
+    xin[[k]] <- rep(0,p)
     MU[[k]] <- matrix(0,nrow = n_save,ncol = p)
+    XI[[k]] <- matrix(0,nrow = n_save,ncol = p)
     SIGMA[[k]] <- matrix(0,nrow = n_save,ncol = p*p)
   }
   start.time <- proc.time()
@@ -91,16 +100,32 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
     {
       ### update cluster specific sample stats
       nk <- sum(z == k)
-      Ybar[[k]] <- colMeans(Y[z == k,])
+      tk <- ts[z == k]
+      Yk <- Y[z == k,]
+      tkmat <- matrix(tk,nrow = nk, ncol = 1)
+      Etk <- Yk - tkmat %*% xin[[k]]
+      Etk_bar <- colMeans(Etk)
       
       ### update mu - cluster specific
       Ln[[k]] <- solve(solve(L0) + nk*solve(Sigma[[k]]))
-      mn[[k]] <- Ln[[k]] %*% (solve(L0) %*% mu0 + nk*solve(Sigma[[k]]) %*% Ybar[[k]]) 
-      mun[[k]] <- mvrnormArma(1 ,mn[[k]],Ln[[k]])
+      mn[[k]] <- Ln[[k]] %*% (solve(L0) %*% mu0 + nk*solve(Sigma[[k]]) %*% Etk_bar) 
+      mun[[k]] <- mvrnormArma(1,mn[[k]],Ln[[k]])
+      Munk <- matrix(mun[[k]],nrow = nk,ncol = p,byrow = TRUE)
+      
+      ### update xi - cluster specific
+      Pn[[k]] <- solve(solve(P0) + sum(tk^2)*solve(Sigma[[k]]))
+      xn[[k]] <- Pn[[k]] %*% (solve(P0) %*% xi0 + solve(Sigma[[k]]) %*% colSums(tk * (Yk - Munk)))
+      xin[[k]] <- mvrnormArma(1,xn[[k]],Pn[[k]])
       
       ### update Sigma - cluster specific 
-      Sn[[k]] <- S0 + (t(Y[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - c(mun[[k]])) 
+      Ek <- Etk - Munk
+      Sn[[k]] <- S0 + t(Ek) %*% Ek 
       Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
+      
+      ### update t
+      k_inds <- (1:n)[z == k]
+      Ak <- solve(1 + t(xn[[k]]) %*% solve(Sigma[[k]]) %*% xn[[k]])
+      ts <- update_t(ts,k,k_inds,Ak,xn[[k]],Sigma[[k]],Y,mun[[k]],0,Inf)
     }
     
     # Update multinomial regression parameters
@@ -126,7 +151,7 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
     pi <- update_props(z,K)
     
     ### Update cluster indicators
-    z = update_z_PG_smooth(z,Y,mun,Sigma,PI,1:K,r,M,A)
+    z = update_z_MSN_PG_smooth(z,Y,ts,mun,xin,Sigma,PI,1:K,r,M,A)
     if(verbose)
     {
       print(update_counts(z,K))

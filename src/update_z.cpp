@@ -163,12 +163,21 @@ NumericVector update_z_PG(NumericVector zs,
       NumericVector munk = mun[k];
       arma::mat Sigmak = Sigma[k];
       arma::rowvec yj = Y(i,_);
-      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak);
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak,true);
       pj[k] = pjk[0];
     }
-    NumericVector pii = Pi(i,_);
-    NumericVector pjn = pii*pj / sum(pii*pj);
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pjn);
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      NumericVector pii = Pi(i,_);
+      pj2 = pii*pj / sum(pii*pj);
+    }
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     int z_i = zi[0];
     z_ret[i] = z_i;
   }
@@ -224,6 +233,60 @@ NumericVector update_z_PG_smooth(NumericVector zs,
   }
   return z_ret;
 }
+// update for multivariate skew Normal mixture
+// PG multinomial regression w/ spatial smoothing
+// [[Rcpp::export]]
+NumericVector update_z_MSN_PG_smooth(NumericVector zs, 
+                                     NumericMatrix Y,
+                                     NumericVector t,
+                                     List mun, 
+                                     List xin,
+                                     List Sigma,
+                                     NumericMatrix Pi,
+                                     NumericVector classes,
+                                     double gamma,
+                                     NumericMatrix M,
+                                     NumericMatrix A) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    arma::rowvec yj = Y(i,_);
+    double ti = t[i];
+    int mi = M(i,i);
+    NumericVector nnk_count(K);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      NumericVector xink = xin[k];
+      NumericVector etaik = munk + ti * xink;
+      arma::mat Sigmak = Sigma[k];
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
+      nnk_count[k] = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0];
+    }
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj = pj*exp((gamma/mi)*2*nnk_count);
+      NumericVector pii = Pi(i,_);
+      pj2 = pii*pj / sum(pii*pj);
+    }
+    //Rcout << i << ":" << pj2 << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
+    int z_i = zi[0];
+    z_ret[i] = z_i;
+  }
+  return z_ret;
+}
 
 // update for MSN mixture
 // [[Rcpp::export]]
@@ -250,12 +313,73 @@ NumericVector update_z_MSN(NumericVector zs,
       NumericVector xink = xin[k];
       NumericVector etaik = munk + ti * xink;
       arma::mat Sigmak = Sigma[k];
-      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak);
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
       pj[k] = pjk[0];
     }
-    pj = pi*pj / sum(pi*pj);
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj2 = pi*pj / sum(pi*pj);
+    }
     //Rcout << i << ":" << pi_star << std::endl;
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
+    z_ret[i] = zi[0];
+  }
+  return z_ret;
+}
+
+// update for MSN mixture
+// [[Rcpp::export]]
+NumericVector update_z_MSN_smooth(NumericVector zs, 
+                                  NumericMatrix Y,
+                                  NumericVector t,
+                                  List mun, 
+                                  List xin,
+                                  List Sigma,
+                                  NumericVector pi,
+                                  NumericVector classes,
+                                  double gamma,
+                                  NumericMatrix M,
+                                  NumericMatrix A) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    arma::rowvec yj = Y(i,_);
+    double ti = t[i];
+    int mi = M(i,i);
+    NumericVector nnk_count(K);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      NumericVector xink = xin[k];
+      NumericVector etaik = munk + ti * xink;
+      arma::mat Sigmak = Sigma[k];
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
+      nnk_count[k] = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0];
+    }
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj = pj*exp((gamma/mi)*2*nnk_count);
+      pj2 = pi*pj / sum(pi*pj);
+    }
+    //Rcout << i << ":" << pi_star << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     z_ret[i] = zi[0];
   }
   return z_ret;
@@ -286,12 +410,21 @@ NumericVector update_z_spot_MCAR(NumericVector zs,
       NumericVector etaik = phii + munk;
       arma::mat Sigmak = Sigma[k];
       arma::rowvec yj = Y(i,_);
-      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak);
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
       pj[k] = pjk[0];
     }
-    pj = pi*pj / sum(pi*pj);
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj2 = pi*pj / sum(pi*pj);
+    }
     //Rcout << i << ":" << pi_star << std::endl;
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     z_ret[i] = zi[0];
   }
   return z_ret;
@@ -323,13 +456,77 @@ NumericVector update_z_spot_PG_MCAR(NumericVector zs,
       NumericVector etaik = phii + munk;
       arma::mat Sigmak = Sigma[k];
       arma::rowvec yj = Y(i,_);
-      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak);
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
       pj[k] = pjk[0];
     }
-    NumericVector pii = Pi(i,_);
-    pj = pii*pj / sum(pii*pj);
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      NumericVector pii = Pi(i,_);
+      pj2 = pii*pj / sum(pii*pj);
+    }
     //Rcout << i << ":" << pi_star << std::endl;
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
+    z_ret[i] = zi[0];
+  }
+  return z_ret;
+}
+
+// update for multivariate Normal mixture
+// with spot-level MCAR spatial random effects
+// non-cluster specific RIs
+// multinomial PG regressions
+// spatial smoothing
+// [[Rcpp::export]]
+NumericVector update_z_spot_PG_MCAR_smooth(NumericVector zs, 
+                                           NumericMatrix Y,
+                                           NumericMatrix Phi,
+                                           List mun, 
+                                           List Sigma,
+                                           NumericMatrix Pi,
+                                           NumericVector classes,
+                                           double gamma,
+                                           NumericMatrix M,
+                                           NumericMatrix A) 
+{
+  int n = zs.length();
+  int K = classes.length();
+  NumericVector z_ret(n);
+  for(int i = 0; i < n; i ++)
+  {
+    NumericVector pj(K);
+    NumericVector phii = Phi(i,_);
+    int mi = M(i,i);
+    NumericVector nnk_count(K);
+    for(int k = 0; k < K; k++)
+    {
+      NumericVector munk = mun[k];
+      NumericVector etaik = phii + munk;
+      arma::mat Sigmak = Sigma[k];
+      arma::rowvec yj = Y(i,_);
+      arma::vec pjk = dmvnrm_arma_fast(yj,etaik,Sigmak,true);
+      nnk_count[k] = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0];
+    }
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      NumericVector pii = Pi(i,_);
+      pj = pj*exp((gamma/mi)*2*nnk_count);
+      pj2 = pii*pj / sum(pii*pj);
+    }
+    //Rcout << i << ":" << pi_star << std::endl;
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     z_ret[i] = zi[0];
   }
   return z_ret;
@@ -355,16 +552,27 @@ NumericVector update_z_smooth(NumericVector zs,
     NumericVector pj(K);
     arma::rowvec yj = Y(i,_);
     int mi = M(i,i);
+    NumericVector nnk_count(K);
     for(int k = 0; k < K; k++)
     {
       NumericVector munk = mun[k];
       arma::mat Sigmak = Sigma[k];
-      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak);
-      int nnk_count = nnk(zs,A,k+1,i);
-      pj[k] = pjk[0]*exp((gamma/mi)*2*nnk_count);
+      arma::vec pjk = dmvnrm_arma_fast(yj,munk,Sigmak,true);
+      nnk_count[k] = nnk(zs,A,k+1,i);
+      pj[k] = pjk[0];
     }
-    pj = pis*pj / sum(pis*pj);
-    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj);
+    NumericVector pj2 (pj.length());
+    if(any(exp(pj) == 0).is_true())
+    {
+      pj2[which_max(pj)] = 1;
+    }
+    else
+    {
+      pj = exp(pj);
+      pj = pj*exp((gamma/mi)*2*nnk_count);
+      pj2 = pis*pj / sum(pis*pj);
+    }
+    NumericVector zi = Rcpp::RcppArmadillo::sample(classes,1,TRUE,pj2);
     z_ret[i] = zi[0];
   }
   return z_ret;

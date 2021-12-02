@@ -1,16 +1,15 @@
-#' Multivariate normal mixture model clustering - PG multinom regression
-#' Spatial smoothing
+#' Multivariate normal spatial mixture model clustering w/ PG multinomial regression on membership probabilities and spatial smoothing
 #'
-#' Implement Gibbs sampling for MVN model with spatial smoothing prior. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
+#' Implement Gibbs sampling for MVN model with MCAR spatial random effects w/ PG multinomial regression on membership probabilities and spatial smoothing
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
 #' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
 #' @param coords_df An n x 2 data frame or matrix of 2d spot coordinates.  
-#' @param K The number of mixture components to fit. 
 #' @param r Empirical spatial smoothing
+#' @param K The number of mixture components to fit. 
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
-#' @param z_init Optional initialized allocation vector. Initialized with hierarchical clustering if NULL. 
+#' @param z_init Optional initialized allocation vector. Randomly initialized if NULL. 
 #' @param verbose Logical for printing cluster allocations at each iteration.
 #'
 #' @return a list of posterior samples
@@ -18,36 +17,48 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom BayesLogit rpg
-#' @importFrom stats cov cutree
+#' @importFrom stats cov
+#' @importFrom scran buildKNNGraph
+#' @importFrom igraph as_adjacency_matrix
 
-fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL, verbose = FALSE)
+fit_mvn_PG_MCAR_smooth <- function(Y,
+                                   W,
+                                   coords_df,
+                                   K,
+                                   r = 3,
+                                   nsim = 2000,
+                                   burn = 1000,
+                                   z_init = NULL, 
+                                   verbose = FALSE)
 {
   # parameters
-  n <- nrow(Y) # number of observations
+  n <- nrow(coords_df) # number of observations
   p <- ncol(Y) # number of features
   v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init)) # initialize z
+  if(is.null(z_init))
   {
     z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
     z <- remap_canonical2(z)
   }
-  else # user provided initialization
+  else
   {
     z <- z_init
     pi <- table(z)/n
   }
   
-  # set up spatial data
   # adjacency matrix
   W_nn <- scran::buildKNNGraph(as.matrix(coords_df),k = 4,transposed = TRUE)
   A <- igraph::as_adjacency_matrix(W_nn,type = "both",sparse = FALSE)
   m <- colSums(A)
   M <- diag(m)
   
+  # random effects
+  PHI <- matrix(0, nrow = nrow(Y), ncol = ncol(Y))
+  
   # priors - shared across clusters
   mu0 <- colMeans(Y)
-  L0 <- S0 <- diag(p)
+  L0 <- S0 <- V <- diag(p)
   nu0 <- 2
   delta0 <- rep(0,v) # prior mean for delta coefficients (multinomial regression)
   D0 <- diag(1,v) # prior covariance for delta coefficients (multinomial regression)
@@ -72,10 +83,13 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
+  Phi <- PHI
+  
   DELTA <- matrix(0,nrow = n_save,ncol = v*(K-1))
   delta <- matrix(0,nrow = v,ncol = K-1)
   eta <- cbind(rep(0,n),W%*%delta)
   PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
+  
   for(k in 1:K)
   {
     MU[[k]] <- matrix(0,nrow = n_save,ncol = p)
@@ -84,6 +98,7 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   start.time <- proc.time()
   print(paste("Started MCMC of",nsim))
   pb <- txtProgressBar(min = 0, max = nsim, style = 3)
+  
   for(i in 1:nsim) 
   {
     ### Update cluster - specific parameters
@@ -91,7 +106,7 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
     {
       ### update cluster specific sample stats
       nk <- sum(z == k)
-      Ybar[[k]] <- colMeans(Y[z == k,])
+      Ybar[[k]] <- colMeans(Y[z == k,] - Phi[z == k,])
       
       ### update mu - cluster specific
       Ln[[k]] <- solve(solve(L0) + nk*solve(Sigma[[k]]))
@@ -99,9 +114,22 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
       mun[[k]] <- mvrnormArma(1 ,mn[[k]],Ln[[k]])
       
       ### update Sigma - cluster specific 
-      Sn[[k]] <- S0 + (t(Y[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - c(mun[[k]])) 
+      Sn[[k]] <- S0 + (t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) 
       Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
     }
+    
+    ### Update random effects Phi
+    Phi <- update_phi_spot_MCAR(Y,Phi,z,mun,Sigma,M,A,V)
+    Phi <- t(scale(t(Phi)))
+    
+    ### Update random effects variance
+    vn <- nu0 + n
+    Dstar <- S0 + t(Phi) %*% (M - A) %*% Phi 
+    V <- solve(r2arma::rwishart(vn,solve(Dstar)))
+    
+    z <- update_z_spot_PG_MCAR_smooth(z,Y,Phi,mun,Sigma,PI,1:K,r,M,A)
+    # remap to address label switching
+    z <- remap_canonical2(z)
     
     # Update multinomial regression parameters
     W <- as.matrix(W) # enforce W is a matrix
@@ -117,25 +145,13 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
       
       D <- solve(D0 + crossprod(W*sqrt(w)))  
       d <- D %*% (D0 %*% delta0 + t(w*W) %*% ukstr)
-      deltak <- c(mvrnormArma(1,d,D))
+      deltak <- c(rmvnorm(1,d,D))
       delta[,k] <- deltak
     }
     # delta <- Delta
     eta <- cbind(rep(0,n),W%*%delta)
     PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
-    pi <- update_props(z,K)
-    
-    ### Update cluster indicators
-    z = update_z_PG_smooth(z,Y,mun,Sigma,PI,1:K,r,M,A)
-    if(verbose)
-    {
-      print(update_counts(z,K))
-    }
-    if(any(update_counts(z,K) < 20))
-    {
-      z = z_init
-      pi = update_props(z,K)
-    }
+    pi <- table(z)/n
     
     ## save results
     if(i > burn)
@@ -159,9 +175,10 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   
   ret_list <- list(Y = Y,
                    W = W,
+                   coords_df = coords_df,
                    MU = MU,
-                   DELTA = DELTA,
                    SIGMA = SIGMA,
+                   DELTA = DELTA,
                    K = K,
                    Z = Z,
                    z = z_map,

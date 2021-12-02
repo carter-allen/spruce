@@ -49,8 +49,16 @@ update_z_PG_smooth <- function(zs, Y, mun, Sigma, Pi, classes, gamma, M, A) {
     .Call('_spruce_update_z_PG_smooth', PACKAGE = 'spruce', zs, Y, mun, Sigma, Pi, classes, gamma, M, A)
 }
 
+update_z_MSN_PG_smooth <- function(zs, Y, t, mun, xin, Sigma, Pi, classes, gamma, M, A) {
+    .Call('_spruce_update_z_MSN_PG_smooth', PACKAGE = 'spruce', zs, Y, t, mun, xin, Sigma, Pi, classes, gamma, M, A)
+}
+
 update_z_MSN <- function(zs, Y, t, mun, xin, Sigma, pi, classes) {
     .Call('_spruce_update_z_MSN', PACKAGE = 'spruce', zs, Y, t, mun, xin, Sigma, pi, classes)
+}
+
+update_z_MSN_smooth <- function(zs, Y, t, mun, xin, Sigma, pi, classes, gamma, M, A) {
+    .Call('_spruce_update_z_MSN_smooth', PACKAGE = 'spruce', zs, Y, t, mun, xin, Sigma, pi, classes, gamma, M, A)
 }
 
 update_z_spot_MCAR <- function(zs, Y, Phi, mun, Sigma, pi, classes) {

@@ -14,6 +14,7 @@
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom stats cov
 #' @importFrom MCMCpack rdirichlet
+#' @importFrom truncnorm rtruncnorm
 #' @examples
 #' \dontrun{ 
 #' # parameters
@@ -72,6 +73,7 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   else
   {
     z <- z_init
+    pi <- table(z)/n
   }
   ts <- truncnorm::rtruncnorm(n,0,Inf,0,1)
   
@@ -103,7 +105,6 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
-  Tmat <- matrix(0,nrow = n_save,ncol = n)
   for(k in 1:K)
   {
     mun[[k]] <- rep(0,p)
@@ -170,7 +171,6 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
         SIGMA[[k]][iter,] <- c(Sigma[[k]])
       }
       Z[iter,] <- z
-      Tmat[iter,] <- ts
     }
     setTxtProgressBar(pb, i)
   }
@@ -183,7 +183,6 @@ fit_msn_clustering <- function(Y,K,nsim = 2000,burn = 1000,z_init = NULL)
   ret_list <- list(Y = Y,
                    MU = MU,
                    XI = XI,
-                   Tmat = Tmat,
                    SIGMA = SIGMA,
                    K = K,
                    Z = Z,
