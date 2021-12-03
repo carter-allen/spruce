@@ -17,6 +17,7 @@
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
 #' @importFrom MCMCpack rdirichlet
+#' @importFrom Rclusterpp Rclusterpp.hclust
 #' @examples 
 #' \dontrun{
 #' # parameters
@@ -77,18 +78,24 @@
 #' # in practice use more mcmc iterations
 #' fit_MCAR <- fit_mvn_MCAR(Y = Y, coords_df = coords_df, K = K, nsim = 10, burn = 0)}
 
-fit_mvn_MCAR <- function(Y,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_MCAR <- function(Y,
+                         coords_df,
+                         K,
+                         nsim = 2000,
+                         burn = 1000,
+                         z_init = NULL)
 {
   # parameters
   n <- nrow(coords_df) # number of observations
   p <- ncol(Y) # number of features
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init))
+  if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
+    z <- z_init
   }
-  else
+  else # user provided initialization
   {
     z <- z_init
     pi <- table(z)/n

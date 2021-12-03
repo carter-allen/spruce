@@ -233,6 +233,7 @@ NumericVector update_z_PG_smooth(NumericVector zs,
   }
   return z_ret;
 }
+
 // update for multivariate skew Normal mixture
 // PG multinomial regression w/ spatial smoothing
 // [[Rcpp::export]]

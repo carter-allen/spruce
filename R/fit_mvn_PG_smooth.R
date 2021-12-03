@@ -19,8 +19,17 @@
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom BayesLogit rpg
 #' @importFrom stats cov cutree
+#' @importFrom Rclusterpp Rclusterpp.hclust
 
-fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_init = NULL, verbose = FALSE)
+fit_mvn_PG_smooth <- function(Y,
+                              W,
+                              coords_df,
+                              K,
+                              r = 3,
+                              nsim = 2000,
+                              burn = 1000,
+                              z_init = NULL, 
+                              verbose = FALSE)
 {
   # parameters
   n <- nrow(Y) # number of observations
@@ -29,8 +38,9 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
+    z <- z_init
   }
   else # user provided initialization
   {
@@ -159,6 +169,7 @@ fit_mvn_PG_smooth <- function(Y,W,coords_df,K,r = 3,nsim = 2000,burn = 1000,z_in
   
   ret_list <- list(Y = Y,
                    W = W,
+                   coords_df = coords_df,
                    MU = MU,
                    DELTA = DELTA,
                    SIGMA = SIGMA,

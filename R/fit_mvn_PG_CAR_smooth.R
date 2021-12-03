@@ -1,10 +1,12 @@
-#' Multivariate normal mixture model clustering - PG multinom regression
+#' Multivariate normal mixture model clustering - PG multinom regression w/ CAR random effect and spatial smoothing
 #'
-#' Implement Gibbs sampling for MVN model with no spatial random effects. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
+#' Implement Gibbs sampling for MVN model. Includes fixed effects multinomial regression w/ CAR random intercepts on cluster indicators using Polya-Gamma data augmentation and spatial smoothing.
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
 #' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
+#' @param coords_df An n x 2 data frame or matrix of 2d spot coordinates.  
 #' @param K The number of mixture components to fit. 
+#' @param r Empirical spatial smoothing
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
 #' @param z_init Optional initialized allocation vector. Randomly initialized if NULL. 
@@ -13,80 +15,46 @@
 #' @export
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
-#' @importFrom BayesLogit rpg
-#' @importFrom stats cov
-#' @examples 
-#' \dontrun{
-#' # parameters
-#' n <- 1000 # number of observations
-#' g <- 3 # number of features
-#' K <- 3 # number of clusters (mixture components)
-#' pi <- rep(1/K,K) # cluster membership probability
-#' z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-#' z <- remap_canonical2(z)
-#' 
-#' # multinomial clustering model
-#' w1 <- rbinom(n,1,0.5) # binary predictor
-#' W <- cbind(1,w1) # design matrix
-#' v <- ncol(W) # number of multinomial predictors
-#' Delta <- matrix(truncnorm::rtruncnorm(n = v*(K-1),
-#'                                       a = -1, 
-#'                                       b = 1,
-#'                                       mean = 0),
-#'                 nrow = v,
-#'                 ncol = K-1) # true multinomial regression coefficients
-#' Eta <- W %*% Delta # true eta term for each observation
-#' U <- matrix(0,nrow = n,ncol = K) # make empty U matrix
-#' U[,1] <- QRM::rGumbel(n, mu = 0, sigma = 1)
-#' for(i in 2:K) # populate U matrix with gumbel values
-#' {
-#'   U[,i] <- QRM::rGumbel(n, mu = Eta[,i-1], sigma = 1)
-#' }
-#' c_true <- c(apply(U,1,which.max))
-#' pi_true <- table(c_true)/n
-#' z <- c_true
-#' 
-#' # Cluster Specific Parameters
-#' # cluster specific means
-#' Mu <- list(
-#'   Mu1 = rnorm(g,-5,1),
-#'   Mu2 = rnorm(g,0,1),
-#'   Mu3 = rnorm(g,5,1)
-#' )
-#' # cluster specific variance-covariance
-#' S <- matrix(1,nrow = g,ncol = g) # covariance matrix
-#' diag(S) <- 1.5
-#' Sig <- list(
-#'   Sig1 = S,
-#'   Sig2 = S, 
-#'   Sig3 = S
-#' )
-#' 
-#' Y <- matrix(0, nrow = n, ncol = g)
-#' for(i in 1:n)
-#' {
-#'   Y[i,] <- mvtnorm::rmvnorm(1,mean = Mu[[z[i]]],sigma = Sig[[z[i]]])
-#' }
-#' 
-#' # fit model
-#' fit1 <- fit_mvn_clustering_PG(Y,W,3,10,0)}
+#' @importFrom stats cov rnorm rgamma
+#' @importFrom scran buildKNNGraph
+#' @importFrom igraph as_adjacency_matrix
+#' @importFrom Rclusterpp Rclusterpp.hclust
 
-fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_PG_CAR_smooth <- function(Y,
+                                  W,
+                                  coords_df,
+                                  K,
+                                  r = 3,
+                                  nsim = 2000,
+                                  burn = 1000,
+                                  z_init = NULL)
 {
   # parameters
   n <- nrow(Y) # number of observations
   p <- ncol(Y) # number of features
   v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init))
+  if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
-  }
-  else
-  {
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
     z <- z_init
   }
+  else # user provided initialization
+  {
+    z <- z_init
+    pi <- table(z)/n
+  }
+  
+  # adjacency matrix
+  W_nn <- scran::buildKNNGraph(as.matrix(coords_df),k = 4,transposed = TRUE)
+  A <- igraph::as_adjacency_matrix(W_nn,type = "both",sparse = FALSE)
+  m <- colSums(A)
+  M <- diag(m)
+  Q <- M - A
+  
+  # random effects
+  PSI <- matrix(0, nrow = nrow(Y), ncol = K-1)
   
   # priors - shared across clusters
   mu0 <- colMeans(Y)
@@ -109,6 +77,7 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
   mn <- list(0)
   mun <- list(0)
   Sn <- list(0)
+  Nu2 <- rep(1,K-1)
   
   # Empty sample storage
   MU <- SIGMA <- vector("list",K)
@@ -117,7 +86,7 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
   Z <- matrix(0,nrow = n_save,ncol = n)
   DELTA <- matrix(0,nrow = n_save,ncol = v*(K-1))
   delta <- matrix(0,nrow = v,ncol = K-1)
-  eta <- cbind(rep(0,n),W%*%delta)
+  eta <- cbind(rep(0,n),W%*%delta + PSI)
   PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
   for(k in 1:K)
   {
@@ -147,7 +116,7 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
     }
     
     ### Update cluster indicators
-    z <- update_z_PG(z,Y,mun,Sigma,PI,1:K)
+    z <- update_z_PG_smooth(z,Y,mun,Sigma,PI,1:K,r,M,A)
     # remap to address label switching
     z <- remap_canonical2(z)
     
@@ -157,9 +126,11 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
     {
       deltak <- delta[,k]
       deltanotk <- delta[,-k]
+      PSIk <- PSI[,k]
+      PSInotk <- PSI[,-k]
       uk <- 1*(z == (k+1))
-      ck <- log(1 + rowSums(exp(W %*% deltanotk)))
-      eta <- W %*% deltak - ck
+      ck <- log(1 + rowSums(exp(W %*% deltanotk + PSInotk)))
+      eta <- W %*% deltak + PSIk - ck
       w <- rpg(n, 1, eta)
       ukstr <- (uk - 1/2)/w + ck
       
@@ -167,9 +138,15 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
       d <- D %*% (D0 %*% delta0 + t(w*W) %*% ukstr)
       deltak <- c(rmvnorm(1,d,D))
       delta[,k] <- deltak
+      
+      Mk <- (get_psi_sums(PSIk,A)/m + ukstr - W%*%deltak)/(m^2/Nu2[k] + 1/w^2)
+      Vk <- 1/(m^2/Nu2[k] + 1/w^2)
+      PSI[,k] <- rnorm(n = n, mean = Mk, sd = sqrt(Vk))
+      
+      Nu2[k] <- 1/rgamma(1,.01 + (n-1)/2,.01 + (t(PSI[,k]) %*% Q %*% PSI[,k])/2)
     }
     # delta <- Delta
-    eta <- cbind(rep(0,n),W%*%delta)
+    eta <- cbind(rep(0,n),W%*%delta + PSI)
     PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
     pi <- table(z)/n
     
@@ -195,6 +172,7 @@ fit_mvn_clustering_PG <- function(Y,W,K,nsim = 2000,burn = 1000,z_init = NULL)
   
   ret_list <- list(Y = Y,
                    W = W,
+                   coords_df = coords_df,
                    MU = MU,
                    DELTA = DELTA,
                    SIGMA = SIGMA,

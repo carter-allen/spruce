@@ -17,20 +17,28 @@
 #' @importFrom stats cov rnorm rgamma
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
+#' @importFrom Rclusterpp Rclusterpp.hclust
 
-fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL)
+fit_mvn_PG_CAR <- function(Y,
+                           W,
+                           coords_df,
+                           K,
+                           nsim = 2000,
+                           burn = 1000,
+                           z_init = NULL)
 {
   # parameters
   n <- nrow(Y) # number of observations
   p <- ncol(Y) # number of features
   v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init))
+  if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
+    z <- z_init
   }
-  else
+  else # user provided initialization
   {
     z <- z_init
     pi <- table(z)/n
@@ -133,7 +141,7 @@ fit_mvn_PG_CAR <- function(Y,W,coords_df,K,nsim = 2000,burn = 1000,z_init = NULL
       Vk <- 1/(m^2/Nu2[k] + 1/w^2)
       PSI[,k] <- rnorm(n = n, mean = Mk, sd = sqrt(Vk))
       
-      Nu2[k] <- rgamma(1,.01 + (n-1)/2,.01 + (t(PSI[,k]) %*% Q %*% PSI[,k])/2)
+      Nu2[k] <- 1/rgamma(1,.01 + (n-1)/2,.01 + (t(PSI[,k]) %*% Q %*% PSI[,k])/2)
     }
     # delta <- Delta
     eta <- cbind(rep(0,n),W%*%delta + PSI)

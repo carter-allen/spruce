@@ -20,6 +20,7 @@
 #' @importFrom stats cov
 #' @importFrom scran buildKNNGraph
 #' @importFrom igraph as_adjacency_matrix
+#' @importFrom Rclusterpp Rclusterpp.hclust
 
 fit_mvn_PG_MCAR_smooth <- function(Y,
                                    W,
@@ -36,12 +37,13 @@ fit_mvn_PG_MCAR_smooth <- function(Y,
   p <- ncol(Y) # number of features
   v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init))
+  if(is.null(z_init)) # initialize z
   {
-    z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z <- remap_canonical2(z)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
+    z <- z_init
   }
-  else
+  else # user provided initialization
   {
     z <- z_init
     pi <- table(z)/n

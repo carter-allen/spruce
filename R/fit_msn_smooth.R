@@ -20,20 +20,28 @@
 #' @importFrom igraph as_adjacency_matrix
 #' @importFrom MCMCpack rdirichlet
 #' @importFrom truncnorm rtruncnorm
+#' @importFrom Rclusterpp Rclusterpp.hclust
 
-fit_msn_smooth <- function(Y,coords_df,K,r=3,nsim = 2000,burn = 1000,z_init = NULL,verbose = FALSE)
+fit_msn_smooth <- function(Y,
+                           coords_df,
+                           K,
+                           r=3,
+                           nsim = 2000,
+                           burn = 1000,
+                           z_init = NULL,
+                           verbose = FALSE)
 {
   # parameters
   n <- nrow(Y) # number of observations
   p <- ncol(Y) # number of features
   pi <- rep(1/K,K) # cluster membership probability
-  if(is.null(z_init))
+  if(is.null(z_init)) # initialize z
   {
-    z_init <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
-    z_init <- remap_canonical2(z_init)
+    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
+    z_init <- stats::cutree(fit_hclust,k = K)
     z <- z_init
   }
-  else
+  else # user provided initialization
   {
     z <- z_init
     pi <- table(z)/n

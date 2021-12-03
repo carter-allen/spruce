@@ -1,41 +1,74 @@
-#' Multivariate skew normal mixture model clustering - PG multinom regression
-#' Spatial smoothing
+#' Multivariate skew-normal mixture model clustering
 #'
-#' Implement Gibbs sampling for MSN model with spatial smoothing prior. Includes fixed effects multinomial regression on cluster indicators using Polya-Gamma data augmentation.
+#' Implement Gibbs sampling for MSN model with no spatial random effects
 #'
 #' @param Y An n x g matrix of gene expression values. n is the number of cell spots and g is the number of features.
-#' @param W An n x v matrix of covariates to predict cluster membership. Should include an intercept (i.e., first column is 1)
-#' @param coords_df An n x 2 data frame or matrix of 2d spot coordinates.  
 #' @param K The number of mixture components to fit. 
-#' @param r Empirical spatial smoothing
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
-#' @param z_init Optional initialized allocation vector. Initialized with hierarchical clustering if NULL. 
-#' @param verbose Logical for printing cluster allocations at each iteration.
+#' @param z_init Optional initialized allocation vector. Randomly initialized if NULL. 
 #'
 #' @return a list of posterior samples
 #' @export
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
-#' @importFrom BayesLogit rpg
-#' @importFrom stats cov cutree
-#' @importFrom Rclusterpp Rclusterpp.hclust
+#' @importFrom stats cov
+#' @importFrom MCMCpack rdirichlet
 #' @importFrom truncnorm rtruncnorm
+#' @importFrom Rclusterpp Rclusterpp.hclust
+#' @examples
+#' \dontrun{ 
+#' # parameters
+#' n <- 1000 # 
+#' number of observations
+#' g <- 3 # number of features
+#' K <- 3 # number of clusters (mixture components)
+#' pi <- rep(1/K,K) # cluster membership probability
+#' z <- sample(1:K, size = n, replace = TRUE, prob = pi) # cluster indicators
+#' z <- remap_canonical2(z)
+#' t_true <- truncnorm::rtruncnorm(n,0,Inf,0,1)
+#' t <- t_true
+#' 
+#' # Cluster Specific Parameters
+#' # cluster specific means
+#' Mu <- list(
+#'   Mu1 = rnorm(g,-5,1),
+#'   Mu2 = rnorm(g,0,1),
+#'   Mu3 = rnorm(g,5,1)
+#' )
+#' # Cluster speficic skewness
+#' Xi <- list(
+#'   Xi1 = rep(2,g),
+#'   Xi2 = rep(0,g),
+#'   Xi3 = rep(-3,g)
+#' )
+#' # cluster specific variance-covariance
+#' S <- matrix(1,nrow = g,ncol = g) # covariance matrix
+#' diag(S) <- 1.5
+#' Sig <- list(
+#'   Sig1 = S,
+#'   Sig2 = S, 
+#'   Sig3 = S
+#' )
+#' 
+#' Y <- matrix(0, nrow = n, ncol = g)
+#' for(i in 1:n)
+#' {
+#'   Y[i,] <- mvtnorm::rmvnorm(1,mean = Mu[[z[i]]] + t[i]*Xi[[z[i]]],sigma = Sig[[z[i]]])
+#' }
+#' 
+#' # fit model
+#' fit1 <- fit_msn_clustering(Y,3,10,0)}
 
-fit_msn_PG_smooth <- function(Y,
-                              W,
-                              coords_df,
-                              K,
-                              r = 3,
-                              nsim = 2000,
-                              burn = 1000,
-                              z_init = NULL, 
-                              verbose = FALSE)
+fit_msn <- function(Y,
+                    K,
+                    nsim = 2000,
+                    burn = 1000,
+                    z_init = NULL)
 {
   # parameters
   n <- nrow(Y) # number of observations
   p <- ncol(Y) # number of features
-  v <- ncol(W) # number of multinomial predictors
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
@@ -50,20 +83,12 @@ fit_msn_PG_smooth <- function(Y,
   }
   ts <- truncnorm::rtruncnorm(n,0,Inf,0,1)
   
-  # set up spatial data
-  # adjacency matrix
-  W_nn <- scran::buildKNNGraph(as.matrix(coords_df),k = 4,transposed = TRUE)
-  A <- igraph::as_adjacency_matrix(W_nn,type = "both",sparse = FALSE)
-  m <- colSums(A)
-  M <- diag(m)
-  
   # priors - shared across clusters
-  mu0 <- colMeans(Y)
+  mu0 <- rep(0,p)
   xi0 <- rep(0,p)
   L0 <- S0 <- P0 <- diag(p)
   nu0 <- 2
-  delta0 <- rep(0,v) # prior mean for delta coefficients (multinomial regression)
-  D0 <- diag(1,v) # prior covariance for delta coefficients (multinomial regression)
+  a0 <- rep(4,K) # prior parameter vector for pi1,...,piK
   
   # cluster specific sample stats
   Sigma <- list(0)
@@ -86,10 +111,6 @@ fit_msn_PG_smooth <- function(Y,
   
   n_save <- nsim - burn
   Z <- matrix(0,nrow = n_save,ncol = n)
-  DELTA <- matrix(0,nrow = n_save,ncol = v*(K-1))
-  delta <- matrix(0,nrow = v,ncol = K-1)
-  eta <- cbind(rep(0,n),W%*%delta)
-  PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
   for(k in 1:K)
   {
     mun[[k]] <- rep(0,p)
@@ -136,39 +157,14 @@ fit_msn_PG_smooth <- function(Y,
       ts <- update_t(ts,k,k_inds,Ak,xn[[k]],Sigma[[k]],Y,mun[[k]],0,Inf)
     }
     
-    # Update multinomial regression parameters
-    W <- as.matrix(W) # enforce W is a matrix
-    for(k in 1:(K-1))
-    {
-      deltak <- delta[,k]
-      deltanotk <- delta[,-k]
-      uk <- 1*(z == (k+1))
-      ck <- log(1 + rowSums(exp(W %*% deltanotk)))
-      eta <- W %*% deltak - ck
-      w <- rpg(n, 1, eta)
-      ukstr <- (uk - 1/2)/w + ck
-      
-      D <- solve(D0 + crossprod(W*sqrt(w)))  
-      d <- D %*% (D0 %*% delta0 + t(w*W) %*% ukstr)
-      deltak <- c(mvrnormArma(1,d,D))
-      delta[,k] <- deltak
-    }
-    # delta <- Delta
-    eta <- cbind(rep(0,n),W%*%delta)
-    PI <- exp(eta)/(1+apply(as.matrix(exp(eta[,-1])),1,sum))
-    pi <- update_props(z,K)
-    
     ### Update cluster indicators
-    z = update_z_MSN_PG_smooth(z,Y,ts,mun,xin,Sigma,PI,1:K,r,M,A)
-    if(verbose)
-    {
-      print(update_counts(z,K))
-    }
-    if(any(update_counts(z,K) < 20))
-    {
-      z = z_init
-      pi = update_props(z,K)
-    }
+    z <- update_z_MSN(z,Y,ts,mun,xin,Sigma,pi,1:K)
+    # remap to address label switching
+    z <- remap_canonical2(z)
+    n.z <- as.vector(unname(table(z))) # gives the number of members currently in each class
+    
+    # Update pi1,...,piK 
+    pi <- MCMCpack::rdirichlet(1,a0 + n.z)
     
     ## save results
     if(i > burn)
@@ -177,10 +173,10 @@ fit_msn_PG_smooth <- function(Y,
       for(k in 1:K)
       {
         MU[[k]][iter,] <- mun[[k]]
+        XI[[k]][iter,] <- xin[[k]]
         SIGMA[[k]][iter,] <- c(Sigma[[k]])
       }
       Z[iter,] <- z
-      DELTA[iter,] <- c(delta)
     }
     setTxtProgressBar(pb, i)
   }
@@ -191,13 +187,11 @@ fit_msn_PG_smooth <- function(Y,
   z_map <- apply(Z, 2, get_map)
   
   ret_list <- list(Y = Y,
-                   W = W,
                    MU = MU,
-                   DELTA = DELTA,
+                   XI = XI,
                    SIGMA = SIGMA,
                    K = K,
                    Z = Z,
-                   z = z_map,
-                   z_init = z_init)
+                   z = z_map)
   return(ret_list)
 }
