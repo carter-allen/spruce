@@ -163,10 +163,12 @@ fit_msn_smooth <- function(Y,
   z_map <- apply(Z, 2, get_map)
   
   ret_list <- list(Y = Y,
+                   W = NULL,
                    coords_df = coords_df,
                    MU = MU,
                    XI = XI,
                    SIGMA = SIGMA,
+                   DELTA = NULL,
                    K = K,
                    Z = Z,
                    z = z_map,

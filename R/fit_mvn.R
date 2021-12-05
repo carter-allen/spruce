@@ -154,10 +154,15 @@ fit_mvn <- function(Y,
   z_map <- apply(Z, 2, get_map)
   
   ret_list <- list(Y = Y,
+                   W = NULL,
+                   coords_df = NULL,
                    MU = MU,
+                   XI = NULL,
                    SIGMA = SIGMA,
+                   DELTA = NULL,
                    K = K,
                    Z = Z,
-                   z = z_map)
+                   z = z_map,
+                   z_init = z_init)
   return(ret_list)
 }

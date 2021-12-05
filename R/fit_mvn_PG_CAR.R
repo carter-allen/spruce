@@ -172,10 +172,12 @@ fit_mvn_PG_CAR <- function(Y,
                    W = W,
                    coords_df = coords_df,
                    MU = MU,
-                   DELTA = DELTA,
+                   XI = NULL,
                    SIGMA = SIGMA,
+                   DELTA = DELTA,
                    K = K,
                    Z = Z,
-                   z = z_map)
+                   z = z_map,
+                   z_init = z_init)
   return(ret_list)
 }

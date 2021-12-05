@@ -177,6 +177,7 @@ fit_msn_PG_smooth <- function(Y,
       for(k in 1:K)
       {
         MU[[k]][iter,] <- mun[[k]]
+        XI[[k]][iter,] <- xin[[k]]
         SIGMA[[k]][iter,] <- c(Sigma[[k]])
       }
       Z[iter,] <- z
@@ -192,7 +193,9 @@ fit_msn_PG_smooth <- function(Y,
   
   ret_list <- list(Y = Y,
                    W = W,
+                   coords_df = coords_df,
                    MU = MU,
+                   XI = XI,
                    DELTA = DELTA,
                    SIGMA = SIGMA,
                    K = K,
