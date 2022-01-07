@@ -17,7 +17,7 @@ Description: Spruce allows for identification of cell sub-populations within tis
   spatial gene expression patterns. Bayesian inference is conducted using efficient Gibbs sampling 
   implemented using 'Rcpp'.
 License: GPL (>= 2)
-Imports: Rcpp, r2arma, mvtnorm, BayesLogit, truncnorm, stats, scran, igraph, MCMCpack, Rclusterpp, patchwork, tidyr, dplyr, ggplot2, tidyselect, Seurat, rlang
+Imports: Rcpp, r2arma, mvtnorm, BayesLogit, truncnorm, stats, igraph, MCMCpack, patchwork, tidyr, dplyr, ggplot2, tidyselect, Seurat, rlang
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 LinkingTo: Rcpp, RcppArmadillo

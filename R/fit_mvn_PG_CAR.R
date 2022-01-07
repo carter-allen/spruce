@@ -14,10 +14,7 @@
 #' @export
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
-#' @importFrom stats cov rnorm rgamma
-#' @importFrom scran buildKNNGraph
-#' @importFrom igraph as_adjacency_matrix
-#' @importFrom Rclusterpp Rclusterpp.hclust
+#' @importFrom stats cov rnorm rgamma kmeans
 
 fit_mvn_PG_CAR <- function(Y,
                            W,
@@ -34,8 +31,8 @@ fit_mvn_PG_CAR <- function(Y,
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
-    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
-    z_init <- stats::cutree(fit_hclust,k = K)
+    fit_kmeans <- kmeans(Y,centers = K)
+    z_init <- fit_kmeans$cluster
     z <- z_init
   }
   else # user provided initialization
@@ -45,8 +42,7 @@ fit_mvn_PG_CAR <- function(Y,
   }
   
   # adjacency matrix
-  W_nn <- scran::buildKNNGraph(as.matrix(coords_df),k = 4,transposed = TRUE)
-  A <- igraph::as_adjacency_matrix(W_nn,type = "both",sparse = FALSE)
+  A <- build_knn_graph(coords_df, k = 4)
   m <- colSums(A)
   M <- diag(m)
   Q <- M - A

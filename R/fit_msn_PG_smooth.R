@@ -18,8 +18,7 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom BayesLogit rpg
-#' @importFrom stats cov cutree
-#' @importFrom Rclusterpp Rclusterpp.hclust
+#' @importFrom stats cov cutree kmeans
 #' @importFrom truncnorm rtruncnorm
 
 fit_msn_PG_smooth <- function(Y,
@@ -39,8 +38,8 @@ fit_msn_PG_smooth <- function(Y,
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
-    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
-    z_init <- stats::cutree(fit_hclust,k = K)
+    fit_kmeans <- kmeans(Y,centers = K)
+    z_init <- fit_kmeans$cluster
     z <- z_init
   }
   else # user provided initialization
@@ -50,10 +49,8 @@ fit_msn_PG_smooth <- function(Y,
   }
   ts <- truncnorm::rtruncnorm(n,0,Inf,0,1)
   
-  # set up spatial data
   # adjacency matrix
-  W_nn <- scran::buildKNNGraph(as.matrix(coords_df),k = 4,transposed = TRUE)
-  A <- igraph::as_adjacency_matrix(W_nn,type = "both",sparse = FALSE)
+  A <- build_knn_graph(coords_df, k = 4)
   m <- colSums(A)
   M <- diag(m)
   

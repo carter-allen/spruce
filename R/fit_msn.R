@@ -12,10 +12,9 @@
 #' @export
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
-#' @importFrom stats cov
+#' @importFrom stats cov kmeans
 #' @importFrom MCMCpack rdirichlet
 #' @importFrom truncnorm rtruncnorm
-#' @importFrom Rclusterpp Rclusterpp.hclust
 #' @examples
 #' \dontrun{ 
 #' # parameters
@@ -72,8 +71,8 @@ fit_msn <- function(Y,
   pi <- rep(1/K,K) # cluster membership probability
   if(is.null(z_init)) # initialize z
   {
-    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
-    z_init <- stats::cutree(fit_hclust,k = K)
+    fit_kmeans <- kmeans(Y,centers = K)
+    z_init <- fit_kmeans$cluster
     z <- z_init
   }
   else # user provided initialization

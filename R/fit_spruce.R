@@ -15,8 +15,6 @@
 #'
 #' @keywords spatial transcriptomics Bayesian
 #' @import Seurat
-#' @importFrom stats cutree
-#' @importFrom Rclusterpp Rclusterpp.hclust
 #' @export
 #' @return A list of MCMC samples, including the MAP estimate of cluster indicators (z)
 #' 
@@ -99,13 +97,6 @@ fit_spruce <- function(seurat_obj,
     coords <- coords[rownames(Y),]
     N <- nrow(Y)
     meta <- seurat_obj@meta.data[rownames(Y),]
-  }
-  
-  if(is.null(z_init))
-  {
-    print("Initializing with hclust")
-    fit_hclust <- Rclusterpp::Rclusterpp.hclust(Y)
-    z_init <- cutree(fit_hclust,k = K)
   }
   
   # dispatch to spruce functions

@@ -16,7 +16,6 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom stats cov kmeans
-#' @importFrom igraph as_adjacency_matrix
 #' @importFrom MCMCpack rdirichlet
 #' @examples 
 #' \dontrun{

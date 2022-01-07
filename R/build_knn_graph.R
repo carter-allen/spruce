@@ -2,7 +2,7 @@
 #'
 #' Construct a binary adjacency matrix
 #'
-#' @param coords_df An n x 2 data frame or matrix of 2d spot coordinates  
+#' @param coords An n x 2 data frame or matrix of 2d spot coordinates  
 #' @param k The number of neighbors
 #'
 #' @return an adjacency matrix
@@ -11,6 +11,7 @@
 #' @examples 
 #' data(coords_df_sim)
 #' coords_df <- coords_df_sim[,1:2]
+#' A <- build_knn_graph(coords_df,k = 4)
 build_knn_graph <- function(coords,k)
 {
   dist <- as.matrix(dist(as.matrix(coords)))

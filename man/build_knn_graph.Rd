@@ -7,9 +7,9 @@
 build_knn_graph(coords, k)
 }
 \arguments{
-\item{k}{The number of neighbors}
+\item{coords}{An n x 2 data frame or matrix of 2d spot coordinates}
 
-\item{coords_df}{An n x 2 data frame or matrix of 2d spot coordinates}
+\item{k}{The number of neighbors}
 }
 \value{
 an adjacency matrix
@@ -20,4 +20,5 @@ Construct a binary adjacency matrix
 \examples{
 data(coords_df_sim)
 coords_df <- coords_df_sim[,1:2]
+A <- build_knn_graph(coords_df,k = 4)
 }
