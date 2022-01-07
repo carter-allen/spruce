@@ -29,6 +29,8 @@ fit_mvn_PG_MCAR(
 \item{burn}{Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.}
 
 \item{z_init}{Optional initialized allocation vector. Randomly initialized if NULL.}
+
+\item{verbose}{Logical for printing cluster allocations at each iteration.}
 }
 \value{
 a list of posterior samples

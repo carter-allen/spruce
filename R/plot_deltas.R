@@ -7,6 +7,7 @@
 #' @return a ggplot
 #' @export
 #' @import patchwork
+#' @importFrom rlang .data
 #' @importFrom tidyr pivot_longer separate
 #' @importFrom dplyr filter
 #' @importFrom tidyselect everything
@@ -34,13 +35,13 @@ plot_deltas <- function(fit)
   D_df_long <- tidyr::pivot_longer(DELTA,cols = tidyselect::everything(),names_to = "delta",values_to = "draw") 
   D_df_long <- tidyr::separate(data = D_df_long,col = "delta",into = c("k","p"),remove = FALSE)
   
-  D_df_long_p1 <- dplyr::filter(D_df_long,p == "p1")
+  D_df_long_p1 <- dplyr::filter(D_df_long,.data$p == "p1")
   D1_add <- data.frame(delta = rep("k1_p1",nrow(DELTA)),
                        k = rep("k1",nrow(DELTA)),
                        p = rep("p1",nrow(DELTA)),
                        draw = rep(0,nrow(DELTA)))
   D_df_long_p1 <- rbind(D_df_long_p1,D1_add)
-  d_plot_p <- ggplot(data = D_df_long_p1, aes(x = k, y = draw, fill = delta)) +
+  d_plot_p <- ggplot(data = D_df_long_p1, aes(x = k, y = .data$draw, fill = .data$delta)) +
     geom_boxplot() + 
     geom_hline(yintercept = 0,linetype = "dashed") + 
     theme_classic() + 
@@ -51,13 +52,13 @@ plot_deltas <- function(fit)
   d_plots <- d_plot_p
   for(vs in 2:v)
   {
-    D_df_long_p <- dplyr::filter(D_df_long,p == paste0("p",vs))
+    D_df_long_p <- dplyr::filter(D_df_long,.data$p == paste0("p",vs))
     D_add <- data.frame(delta = rep("k1_p1",nrow(DELTA)),
                          k = rep("k1",nrow(DELTA)),
                          p = rep(paste0("p",vs),nrow(DELTA)),
                          draw = rep(0,nrow(DELTA)))
     D_df_long_p <- rbind(D_df_long_p,D_add)
-    d_plot_p <- ggplot(data = D_df_long_p, aes(x = k, y = draw, fill = delta)) +
+    d_plot_p <- ggplot(data = D_df_long_p, aes(x = k, y = .data$draw, fill = .data$delta)) +
       geom_boxplot() + 
       geom_hline(yintercept = 0,linetype = "dashed")+ 
       theme_classic() + 

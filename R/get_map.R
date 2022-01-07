@@ -39,7 +39,7 @@
 #' }
 #' 
 #' # fit model
-#' fit1 <- fit_mvn_clustering(Y,3,100,0)
+#' fit1 <- fit_mvn(Y,3,100,0)
 #'
 #' # Apply get_map() to columns of Z (i.e., posterior samples from each cell spot)
 #' z_map <- apply(fit1$Z, 2, get_map)

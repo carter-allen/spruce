@@ -33,6 +33,7 @@ get_scores <- function(fit)
   
   ro <- matrix(0,nrow = n,ncol = K)
   
+  pb <- txtProgressBar(min = 0, max = n, style = 3)
   for(i in 1:n)
   {
     pj <- rep(0,K)
@@ -48,7 +49,9 @@ get_scores <- function(fit)
     pii <- PI_post[i,]
     pjn <- pii*pj/sum(pii*pj)
     PI_d_post[i,] <- pjn
+    setTxtProgressBar(pb, i)
   }
+  close(pb)
   
   u_score <- rep(0,n)
   for(i in 1:n)

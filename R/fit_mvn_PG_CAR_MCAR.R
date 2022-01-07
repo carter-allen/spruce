@@ -9,6 +9,7 @@
 #' @param nsim Number of total MCMC iterations to run.
 #' @param burn Number of MCMC iterations to discard as burn in. The number of saved samples is nsim - burn.
 #' @param z_init Optional initialized allocation vector. Randomly initialized if NULL. 
+#' @param verbose Logical for printing cluster allocations at each iteration.
 #'
 #' @return a list of posterior samples
 #' @export
