@@ -11,6 +11,18 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// rwishart
+arma::mat rwishart(unsigned int df, const arma::mat& S);
+RcppExport SEXP _spruce_rwishart(SEXP dfSEXP, SEXP SSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< unsigned int >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type S(SSEXP);
+    rcpp_result_gen = Rcpp::wrap(rwishart(df, S));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mvrnormArma
 arma::mat mvrnormArma(int n, arma::vec mu, arma::mat sigma);
 RcppExport SEXP _spruce_mvrnormArma(SEXP nSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
@@ -323,6 +335,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_spruce_rwishart", (DL_FUNC) &_spruce_rwishart, 2},
     {"_spruce_mvrnormArma", (DL_FUNC) &_spruce_mvrnormArma, 3},
     {"_spruce_sub_mat", (DL_FUNC) &_spruce_sub_mat, 2},
     {"_spruce_col_sum", (DL_FUNC) &_spruce_col_sum, 1},

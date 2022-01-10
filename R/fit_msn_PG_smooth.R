@@ -125,7 +125,7 @@ fit_msn_PG_smooth <- function(Y,
       ### update Sigma - cluster specific 
       Ek <- Etk - Munk
       Sn[[k]] <- S0 + t(Ek) %*% Ek 
-      Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
+      Sigma[[k]] <- solve(rwishart(nu0+nk, solve(Sn[[k]])))
       
       ### update t
       k_inds <- (1:n)[z == k]

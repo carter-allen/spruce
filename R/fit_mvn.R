@@ -121,7 +121,7 @@ fit_mvn <- function(Y,
       
       ### update Sigma - cluster specific 
       Sn[[k]] <- S0 + (t(Y[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - c(mun[[k]])) 
-      Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
+      Sigma[[k]] <- solve(rwishart(nu0+nk, solve(Sn[[k]])))
     }
     
     ### Update cluster indicators

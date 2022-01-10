@@ -110,7 +110,7 @@ fit_mvn_PG_MCAR <- function(Y,
       
       ### update Sigma - cluster specific 
       Sn[[k]] <- S0 + (t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) %*% t(t(Y[z == k,]) - t(Phi[z == k,]) - c(mun[[k]])) 
-      Sigma[[k]] <- solve(r2arma::rwishart(nu0+nk, solve(Sn[[k]])))
+      Sigma[[k]] <- solve(rwishart(nu0+nk, solve(Sn[[k]])))
     }
     
     ### Update random effects Phi
@@ -120,7 +120,7 @@ fit_mvn_PG_MCAR <- function(Y,
     ### Update random effects variance
     vn <- nu0 + n
     Dstar <- S0 + t(Phi) %*% (M - A) %*% Phi 
-    V <- solve(r2arma::rwishart(vn,solve(Dstar)))
+    V <- solve(rwishart(vn,solve(Dstar)))
     
     z <- update_z_spot_PG_MCAR(z,Y,Phi,mun,Sigma,PI,1:K)
     # remap to address label switching
