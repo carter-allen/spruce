@@ -1,6 +1,0 @@
-.git
-./.git
-^.*\.Rproj$
-^\.Rproj\.user$
-^.git$
-^.Rprofile$
