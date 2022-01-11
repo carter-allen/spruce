@@ -15,6 +15,3 @@ While `spruce` is intended for modeling single-sample HST experiments, we have d
 library(devtools)
 install_github('carter-allen/spruce')
 ```
-
-## Vignettes
-
