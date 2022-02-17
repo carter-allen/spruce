@@ -1,6 +1,6 @@
 Package: spruce
 Type: Package
-Title: SPRUCE: Spatial Random Effects Clustering of Single Cell Data
+Title: Spatial Random Effects Clustering of Single Cell Data
 Version: 0.99.0
 Authors@R: 
     c(person(given = "Carter",
@@ -11,8 +11,8 @@ Authors@R:
      person(given = "Dongjun",
            family = "Chung",
            role = c("aut")))
-Date: 2021-7-1
-Description: Spruce allows for identification of cell sub-populations within tissue samples using
+Date: 2022-02-17
+Description: Allows for identification of cell sub-populations within tissue samples using
   Bayesian multivariate mixture models with spatial random effects to account for a wide range of 
   spatial gene expression patterns. Bayesian inference is conducted using efficient Gibbs sampling 
   implemented using 'Rcpp'.
