@@ -1,3 +1,5 @@
+Please note this package is no longer being maintained. All open issues will be closed. 
+
 # spruce <img src="https://carter-allen.github.io/spruce_transp.png" align="right" width="150" />
 ## A suite of Bayesian multivariate finite mixture models for clustering single cell spatial transcriptomics data. 
 
